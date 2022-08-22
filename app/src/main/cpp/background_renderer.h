@@ -7,8 +7,7 @@
 
 #include "android/log.h"
 #include "GLES2/gl2.h"
-#include "shaders/loader.h"
-#include "shaders/default.cpp"
+#include "shaders/default.h"
 
 #define COORDS_PER_VERTEX 3
 #define VERTEX_STRIDE COORDS_PER_VERTEX * sizeof(GLfloat)

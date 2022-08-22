@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include "background_renderer.h"
 
 #define TAG "BackgroundRenderer"
@@ -15,16 +14,7 @@ static GLfloat triangleCoords[] = {
 static GLfloat color[] = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
 
 void BackgroundRenderer::init() {
-  GLuint vertexShader, fragmentShader;
-
-  mDefaultProgram = glCreateProgram();
-  CompileShader(&vertexShader, GL_VERTEX_SHADER, DefaultShader::vertexShaderCode);
-  CompileShader(&fragmentShader, GL_FRAGMENT_SHADER, DefaultShader::fragmentShaderCode);
-
-  glAttachShader(mDefaultProgram, vertexShader);
-  glAttachShader(mDefaultProgram, fragmentShader);
-
-  LinkProgram(mDefaultProgram);
+  mDefaultProgram = DefaultShader::compile();
 }
 
 void BackgroundRenderer::drawFrame() {
