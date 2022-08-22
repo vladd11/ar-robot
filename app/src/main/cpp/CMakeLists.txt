@@ -7,9 +7,6 @@ add_library(
         SHARED
 
         # Provides a relative path to your source file(s).
-        activity.cpp
-        renderer.cpp
-        shaders.cpp
 
         shaders/default.cpp
 )

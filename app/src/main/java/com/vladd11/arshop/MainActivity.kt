@@ -1,14 +1,13 @@
 package com.vladd11.arshop
 
-import android.app.NativeActivity
 import android.opengl.GLSurfaceView
 import android.os.Bundle
-import android.os.PersistableBundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentContainerView
 
 class MainActivity : AppCompatActivity() {
     lateinit var glSurfaceView: GLSurfaceView;
-    lateinit var fragmentView: GLSurfaceView;
+    lateinit var fragmentView: FragmentContainerView;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
