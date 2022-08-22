@@ -7,7 +7,10 @@ add_library(
         SHARED
 
         # Provides a relative path to your source file(s).
-
+        helper.cpp
+        engine.cpp
+        background_renderer.cpp
+        shaders/loader.cpp
         shaders/default.cpp
 )
 
