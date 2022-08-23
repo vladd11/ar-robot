@@ -19,7 +19,7 @@ void BackgroundRenderer::init() {
   mCameraTexCoordAttrib = glGetAttribLocation(mCameraProgram, "a_TexCoord");
 }
 
-void BackgroundRenderer::drawFrame(float *mTransformedUVs) {
+void BackgroundRenderer::draw(float *mTransformedUVs) {
   static_assert(std::extent<decltype(kVertices)>::value == kNumVertices * 2,
                 "Incorrect kVertices length");
   if (mCameraTextureId == -1) {

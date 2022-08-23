@@ -5,10 +5,12 @@
 #ifndef AR_SHOP_DEFAULT_H
 #define AR_SHOP_DEFAULT_H
 
-#include "loader.h"
 #include <GLES2/gl2.h>
+#include "loader.h"
 
 namespace DefaultShader {
+  static const GLuint vPositionAttrIndex = 0;
+
   GLuint compile();
 }
 

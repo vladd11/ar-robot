@@ -3,9 +3,10 @@
 namespace DefaultShader {
   static const char *vertexShaderCode = R"(
 attribute vec4 vPosition;
+uniform mat4 mvp;
 void main()
 {
-  gl_Position = vPosition;
+  gl_Position = mvp * vPosition;
 }
 )";
 
@@ -25,6 +26,8 @@ void main() {
 
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
+
+    glBindAttribLocation(program, vPositionAttrIndex, "vPosition");
 
     LinkProgram(program);
 

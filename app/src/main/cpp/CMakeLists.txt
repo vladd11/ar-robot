@@ -11,6 +11,9 @@ set_target_properties(
         INTERFACE_INCLUDE_DIRECTORIES ${ARCORE_INCLUDE}
 )
 
+add_library(glm INTERFACE)
+set_target_properties(glm PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${GLM_INCLUDE})
+
 add_library(
         arshop
         SHARED
@@ -19,12 +22,14 @@ add_library(
         helper.cpp
         engine.cpp
         background_renderer.cpp
+        ar_ui_renderer.cpp
         glError.cpp
         verts/plane.cpp
         verts/triangle.cpp
         shaders/background.cpp
         shaders/loader.cpp
         shaders/default.cpp
+
 )
 
 find_library(
@@ -42,4 +47,5 @@ target_link_libraries(
         ${log-lib}
         ${gles-lib}
         arcore
+        glm
 )

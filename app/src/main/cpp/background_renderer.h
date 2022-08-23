@@ -27,7 +27,7 @@ public:
 
   void init();
 
-  void drawFrame(float *mTransformedUVs);
+  void draw(float *mTransformedUVs);
 };
 
 

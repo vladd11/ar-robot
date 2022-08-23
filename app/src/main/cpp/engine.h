@@ -6,20 +6,32 @@
 #define AR_SHOP_ENGINE_H
 
 #include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <android/log.h>
 #include <jni.h>
 #include <stdlib.h>
 
+#include "arcore_c_api.h"
+
 #include "shaders/default.h"
 #include "verts/triangle.h"
-#include "arcore_c_api.h"
 #include "background_renderer.h"
+#include "ar_ui_renderer.h"
+#include "verts/triangle.h"
+#include "glm.h"
+
 
 class Engine {
 private:
-  GLuint mDefaultProgram, mTextureId;
-  GLint mTextureUniform;
-  ArFrame *frame{};
+  struct UiAnchor {
+    ArAnchor *anchor;
+    ArTrackable *trackable;
+  };
+
+  std::vector<UiAnchor> mAnchors;
+  ArFrame *mArFrame{};
   BackgroundRenderer *mBackgroundRenderer;
+  ArUiRenderer *mArUiRenderer;
   ArSession *mArSession{};
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
 
@@ -28,6 +40,8 @@ private:
 
 public:
   Engine();
+
+  ~Engine();
 
   void init();
 
@@ -38,6 +52,8 @@ public:
   void resume(JNIEnv *env, jobject context, jobject activity);
 
   bool IsDepthSupported();
+
+  void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 };
 
 
