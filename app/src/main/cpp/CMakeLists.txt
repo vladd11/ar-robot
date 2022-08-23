@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.18.1)
 
 project("arshop")
 
+add_library(arcore SHARED IMPORTED)
+set_target_properties(
+        arcore
+        PROPERTIES IMPORTED_LOCATION
+
+        ${ARCORE_LIBPATH}/${ANDROID_ABI}/libarcore_sdk_c.so
+        INTERFACE_INCLUDE_DIRECTORIES ${ARCORE_INCLUDE}
+)
+
 add_library(
         arshop
         SHARED
@@ -10,6 +19,10 @@ add_library(
         helper.cpp
         engine.cpp
         background_renderer.cpp
+        glError.cpp
+        verts/plane.cpp
+        verts/triangle.cpp
+        shaders/background.cpp
         shaders/loader.cpp
         shaders/default.cpp
 )
@@ -28,4 +41,5 @@ target_link_libraries(
 
         ${log-lib}
         ${gles-lib}
+        arcore
 )

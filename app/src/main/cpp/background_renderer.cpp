@@ -2,37 +2,51 @@
 
 #define TAG "BackgroundRenderer"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
 BackgroundRenderer::BackgroundRenderer() = default;
 
-static GLfloat triangleCoords[] = {
-    0.5f, 0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    -0.5f, 0.5f, 0.0f
-};
-
-static GLfloat color[] = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
-
 void BackgroundRenderer::init() {
-  mDefaultProgram = DefaultShader::compile();
+  glGenTextures(1, &mCameraTextureId);
+  glBindTexture(GL_TEXTURE_EXTERNAL_OES, mCameraTextureId);
+  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  mCameraProgram = BackgroundShader::compile();
+
+  mCameraTextureUniform = glGetUniformLocation(mCameraProgram, "sTexture");
+  mCameraPositionAttrib = glGetAttribLocation(mCameraProgram, "a_Position");
+  mCameraTexCoordAttrib = glGetAttribLocation(mCameraProgram, "a_TexCoord");
 }
 
-void BackgroundRenderer::drawFrame() {
-  glUseProgram(mDefaultProgram);
+void BackgroundRenderer::drawFrame(float *mTransformedUVs) {
+  static_assert(std::extent<decltype(kVertices)>::value == kNumVertices * 2,
+                "Incorrect kVertices length");
+  if (mCameraTextureId == -1) {
+    return;
+  }
 
-  GLint location = glGetAttribLocation(mDefaultProgram, "vPosition");
+  glDepthMask(GL_FALSE);
 
-  glEnableVertexAttribArray(location);
-  glVertexAttribPointer(location, COORDS_PER_VERTEX,
-                        GL_FLOAT, false,
-                        VERTEX_STRIDE, &triangleCoords);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_EXTERNAL_OES, mCameraTextureId);
+  glUseProgram(mCameraProgram);
+  glUniform1i(mCameraTextureUniform, 0);
 
-  GLint colorHandle = glGetUniformLocation(mDefaultProgram, "vColor");
+  // Set the vertex positions and texture coordinates.
+  glVertexAttribPointer(mCameraPositionAttrib, 2, GL_FLOAT, false, 0,
+                        kVertices);
+  glVertexAttribPointer(mCameraTexCoordAttrib, 2, GL_FLOAT, false, 0,
+                        mTransformedUVs);
+  glEnableVertexAttribArray(mCameraPositionAttrib);
+  glEnableVertexAttribArray(mCameraTexCoordAttrib);
 
-  // Set color for drawing the triangle
-  glUniform4fv(colorHandle, 1, color);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-  // Draw the triangle
-  glDrawArrays(GL_TRIANGLES, 0, 3);
-  glDisableVertexAttribArray(location);
+  glDisableVertexAttribArray(mCameraPositionAttrib);
+  glDisableVertexAttribArray(mCameraTexCoordAttrib);
+
+  glUseProgram(0);
+  glDepthMask(GL_TRUE);
+  CheckGlError("BackgroundRenderer::Draw() error");
 }
