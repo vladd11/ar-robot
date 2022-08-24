@@ -31,3 +31,9 @@ Java_com_vladd11_arshop_NativeEngine_onSurfaceChanged(JNIEnv *env, jobject thiz,
                                                       jint rotation, jint width, jint height) {
   native(pointer)->resize(rotation, width, height);
 }
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_vladd11_arshop_NativeEngine_onTouch(JNIEnv *env, jobject thiz, jlong pointer, jfloat x,
+                                             jfloat y) {
+  native(pointer)->onTouch(x, y);
+}

@@ -8,10 +8,9 @@ ArUiRenderer::ArUiRenderer() = default;
 
 void ArUiRenderer::init() {
   mDefaultProgram = DefaultShader::compile();
-  initializationTime = std::chrono::system_clock::now();
 }
 
-void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> projection) {
+void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
   glUseProgram(mDefaultProgram);
 
   glEnableVertexAttribArray(DefaultShader::vPositionAttrIndex);
@@ -20,13 +19,7 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> projection) {
   glUniform4fv(vColorLocation, 1, Triangle::kColors);
 
   GLint mvpLocation = glGetUniformLocation(mDefaultProgram, "mvp");
-  glm::mat4 trans = glm::mat4(1.0f);
-
-  std::chrono::duration<float> elapsed = std::chrono::system_clock::now() - initializationTime;
-  trans = glm::rotate<float>(trans, static_cast<float>(elapsed.count()),
-                             glm::vec3(0.f, 0.f, 0.01f));
-  trans = trans * projection;
-  glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(trans));
+  glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(mvp));
 
   glVertexAttribPointer(
       DefaultShader::vPositionAttrIndex,
@@ -37,7 +30,7 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> projection) {
       Triangle::kVertices
   );
 
-  glDrawArrays(GL_TRIANGLES, 0, 3);
+  glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
 
   glDisableVertexAttribArray(DefaultShader::vPositionAttrIndex);
 

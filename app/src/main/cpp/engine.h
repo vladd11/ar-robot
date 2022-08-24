@@ -28,7 +28,7 @@ private:
     ArTrackable *trackable;
   };
 
-  std::vector<UiAnchor> mAnchors;
+  std::vector<UiAnchor*> mAnchors;
   ArFrame *mArFrame{};
   BackgroundRenderer *mBackgroundRenderer;
   ArUiRenderer *mArUiRenderer;
@@ -48,6 +48,8 @@ public:
   void drawFrame();
 
   void resize(int rotation, int width, int height);
+
+  void onTouch(float x, float y);
 
   void resume(JNIEnv *env, jobject context, jobject activity);
 

@@ -22,7 +22,7 @@ private:
 public:
   ArUiRenderer();
   void init();
-  void draw(glm::mat<4, 4, glm::f32> projection);
+  void draw(glm::mat<4, 4, glm::f32> mvp) const;
 };
 
 #endif //AR_SHOP_AR_UI_RENDERER_H

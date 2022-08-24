@@ -20,7 +20,12 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
     private external fun onSurfaceCreated(pointer: Long)
     private external fun onSurfaceChanged(pointer: Long, rotation: Int, width: Int, height: Int)
     private external fun onDrawFrame(pointer: Long)
+    private external fun onTouch(pointer: Long, x: Float, y: Float)
     private external fun onResume(pointer: Long, context: Context, activity: Activity)
+
+    fun onTouch(x: Float, y: Float) {
+        onTouch(nativeEngine, x, y)
+    }
 
     fun onResume(activity: Activity) {
         onResume(nativeEngine, activity.applicationContext, activity)
