@@ -30,7 +30,7 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
       Triangle::kVertices
   );
 
-  glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
+  glDrawArrays(GL_TRIANGLES, 0, 3);
 
   glDisableVertexAttribArray(DefaultShader::vPositionAttrIndex);
 

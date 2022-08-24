@@ -25,7 +25,6 @@ class Engine {
 private:
   struct UiAnchor {
     ArAnchor *anchor;
-    ArTrackable *trackable;
   };
 
   std::vector<UiAnchor*> mAnchors;
