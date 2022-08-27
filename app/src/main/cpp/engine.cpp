@@ -60,11 +60,6 @@ void Engine::drawFrame() {
   ArPose_create(mArSession, nullptr, &pose);
   ArCamera_getPose(mArSession, ar_camera, pose);
 
-  float poseMatrix[16];
-  ArPose_getMatrix(mArSession, pose, poseMatrix);
-
-  glm::mat4 matrix = glm::make_mat4(poseMatrix);
-
   // If display rotation changed (also includes view size change), we need to
   // re-query the uv coordinates for the on-screen portion of the camera image.
   int32_t geometry_changed = 0;
@@ -142,34 +137,6 @@ void Engine::drawFrame() {
   }
 }
 
-glm::vec3 GetPlaneNormal(const ArSession &ar_session,
-                         const ArPose &plane_pose) {
-  float plane_pose_raw[7] = {0.f};
-  ArPose_getPoseRaw(&ar_session, &plane_pose, plane_pose_raw);
-  glm::quat plane_quaternion(plane_pose_raw[3], plane_pose_raw[0],
-                             plane_pose_raw[1], plane_pose_raw[2]);
-  // Get normal vector, normal is defined to be positive Y-position in local
-  // frame.
-  return glm::rotate(plane_quaternion, glm::vec3(0., 1.f, 0.));
-}
-
-float CalculateDistanceToPlane(const ArSession &ar_session,
-                               const ArPose &plane_pose,
-                               const ArPose &camera_pose) {
-  float plane_pose_raw[7] = {0.f};
-  ArPose_getPoseRaw(&ar_session, &plane_pose, plane_pose_raw);
-  glm::vec3 plane_position(plane_pose_raw[4], plane_pose_raw[5],
-                           plane_pose_raw[6]);
-  glm::vec3 normal = GetPlaneNormal(ar_session, plane_pose);
-
-  float camera_pose_raw[7] = {0.f};
-  ArPose_getPoseRaw(&ar_session, &camera_pose, camera_pose_raw);
-  glm::vec3 camera_P_plane(camera_pose_raw[4] - plane_position.x,
-                           camera_pose_raw[5] - plane_position.y,
-                           camera_pose_raw[6] - plane_position.z);
-  return glm::dot(normal, camera_P_plane);
-}
-
 void Engine::onTouch(float x, float y) {
   if (mArFrame != nullptr && mArSession != nullptr) {
     ArCamera *arCamera;
@@ -179,14 +146,28 @@ void Engine::onTouch(float x, float y) {
     ArCamera_getTrackingState(mArSession, arCamera,
                               &tracking_state);
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
+      float rawMatrix[16];
+      ArCamera_getViewMatrix(mArSession, arCamera, rawMatrix);
+      glm::mat4 matrix = glm::make_mat4(rawMatrix);
+      glm::vec4 newPosition = glm::vec4(1.f, 1.f, -5.f, 0.f) * matrix;
+
+      float newRawPose[7] = {
+          0.f,
+          0.f,
+          0.f,
+          1.f,
+          newPosition[0],
+          newPosition[1],
+          newPosition[2]
+      };
+
+      ArPose *newPose;
+      ArPose_create(mArSession, newRawPose, &newPose);
+
       ArAnchor *anchor;
+      ArSession_acquireNewAnchor(mArSession, newPose, &anchor);
 
-      float raw_pose[7] = {0, 0, 0, 1.0, 0, 0, -5.0};
-      ArPose *arPose;
-      ArPose_create(mArSession, raw_pose, &arPose);
-      ArSession_acquireNewAnchor(mArSession, arPose, &anchor);
-
-      ArPose_destroy(arPose);
+      ArPose_destroy(newPose);
 
       auto *uiAnchor = new UiAnchor();
       uiAnchor->anchor = anchor;
