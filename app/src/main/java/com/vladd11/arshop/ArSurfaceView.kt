@@ -41,6 +41,12 @@ class ArSurfaceView(context: Context, attrs: AttributeSet) : GLSurfaceView(conte
     }
 
     fun resume(activity: Activity) {
+        onResume()
         nativeEngine.onResume(activity)
+    }
+
+    fun pause() {
+        onPause()
+        nativeEngine.onPause()
     }
 }

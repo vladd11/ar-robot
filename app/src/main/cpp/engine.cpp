@@ -142,7 +142,7 @@ void Engine::onTouch(float x, float y) {
     ArCamera *arCamera;
     ArFrame_acquireCamera(mArSession, mArFrame, &arCamera);
 
-    ArTrackingState tracking_state = AR_TRACKING_STATE_STOPPED;
+    ArTrackingState tracking_state = AR_TRACKING_STATE_STOPPED; // Default value
     ArCamera_getTrackingState(mArSession, arCamera,
                               &tracking_state);
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
@@ -208,6 +208,12 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
   }
   const ArStatus status = ArSession_resume(mArSession);
   CHECKANDTHROW(status == AR_SUCCESS, env, "Failed to resume AR session.")
+}
+
+void Engine::pause() {
+  if (mArSession != nullptr) {
+    ArSession_pause(mArSession);
+  }
 }
 
 void Engine::resize(int rotation, int width, int height) {

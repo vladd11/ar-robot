@@ -37,3 +37,9 @@ Java_com_vladd11_arshop_NativeEngine_onTouch(JNIEnv *env, jobject thiz, jlong po
                                              jfloat y) {
   native(pointer)->onTouch(x, y);
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong pointer) {
+  native(pointer)->pause();
+}

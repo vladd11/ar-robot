@@ -52,7 +52,7 @@ public:
 
   void resume(JNIEnv *env, jobject context, jobject activity);
 
-  bool IsDepthSupported();
+  void pause();
 
   void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 };

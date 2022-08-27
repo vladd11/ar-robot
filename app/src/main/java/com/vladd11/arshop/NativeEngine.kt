@@ -22,6 +22,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
     private external fun onDrawFrame(pointer: Long)
     private external fun onTouch(pointer: Long, x: Float, y: Float)
     private external fun onResume(pointer: Long, context: Context, activity: Activity)
+    private external fun onPause(pointer: Long)
 
     fun onTouch(x: Float, y: Float) {
         onTouch(nativeEngine, x, y)
@@ -29,6 +30,10 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
 
     fun onResume(activity: Activity) {
         onResume(nativeEngine, activity.applicationContext, activity)
+    }
+
+    fun onPause() {
+        onPause(nativeEngine)
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
