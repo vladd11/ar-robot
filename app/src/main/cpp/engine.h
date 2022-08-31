@@ -8,6 +8,7 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/log.h>
+#include <android/asset_manager.h>
 #include <jni.h>
 #include <stdlib.h>
 
@@ -16,6 +17,8 @@
 #include "shaders/default.h"
 #include "verts/triangle.h"
 #include "background_renderer.h"
+#include "yuv2rgb/YuvToRgb.h"
+#include "base64.h"
 #include "ar_ui_renderer.h"
 #include "verts/triangle.h"
 #include "glm.h"
@@ -38,7 +41,7 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
-  Engine();
+  Engine(AAssetManager *assetManager);
 
   ~Engine();
 
@@ -53,6 +56,8 @@ public:
   void resume(JNIEnv *env, jobject context, jobject activity);
 
   void pause();
+
+  void takeFrame();
 
   void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 };

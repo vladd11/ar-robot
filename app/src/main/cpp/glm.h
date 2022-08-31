@@ -24,6 +24,5 @@
 #include "gtc/type_ptr.hpp"
 #include "gtx/transform.hpp"
 #include "gtx/quaternion.hpp"
-#include <gtx/string_cast.hpp>
 
 #endif

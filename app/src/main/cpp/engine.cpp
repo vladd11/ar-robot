@@ -18,7 +18,7 @@
     return;                                                                \
   }
 
-Engine::Engine() {
+Engine::Engine(AAssetManager *assetManager) {
   mBackgroundRenderer = new BackgroundRenderer();
   mArUiRenderer = new ArUiRenderer();
 }
@@ -52,6 +52,8 @@ void Engine::drawFrame() {
   if (ArSession_update(mArSession, mArFrame) != AR_SUCCESS) {
     LOGE("OnDrawFrame ArSession_update error");
   }
+
+  takeFrame();
 
   ArCamera *ar_camera;
   ArFrame_acquireCamera(mArSession, mArFrame, &ar_camera);
@@ -224,5 +226,58 @@ void Engine::resize(int rotation, int width, int height) {
   mDisplayHeight = height;
   if (mArSession != nullptr) {
     ArSession_setDisplayGeometry(mArSession, rotation, width, height);
+  }
+}
+
+void Engine::takeFrame() {
+  LOGD("take frame");
+  ArImage *image = nullptr;
+  if (mArSession != nullptr && mArFrame != nullptr &&
+      ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
+    // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
+
+    const uint8_t *y;
+    const uint8_t *u;
+    const uint8_t *v;
+
+    int planesCount = 0;
+    ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
+    LOGD("%i", planesCount);
+
+    int yLength, uLength, vLength;
+    ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
+    ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
+    ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
+
+    auto *yuv420 = new uint8_t[yLength + uLength + vLength];
+    memcpy(yuv420, y, yLength);
+    memcpy(yuv420 + yLength, u, uLength);
+    memcpy(yuv420 + yLength + uLength, v, vLength);
+
+    int width, height, stride;
+    ArImage_getWidth(mArSession, image, &width);
+    ArImage_getHeight(mArSession, image, &height);
+
+    ArImage_getPlanePixelStride(mArSession, image, 1, &stride);
+
+    auto *argb8888 = new uint8_t[width * height * 4];
+
+    renderscript::RenderScriptToolkit::YuvFormat format = renderscript::RenderScriptToolkit::YuvFormat::YV12;
+    if(stride != 1) {
+      format = renderscript::RenderScriptToolkit::YuvFormat::NV21;
+    }
+
+    std::string base64 = base64_encode(argb8888, width * height * 4);
+    LOGD("%s", base64.c_str());
+    LOGD("%i %i %i %i", width, height, format);
+
+    renderscript::RenderScriptToolkit toolkit;
+    toolkit.yuvToRgb(yuv420, argb8888, width, height, format);
+
+    delete[](argb8888);
+    delete[](yuv420);
+  }
+  if (image != nullptr) {
+    ArImage_release(image);
   }
 }

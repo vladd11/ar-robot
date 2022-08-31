@@ -17,7 +17,7 @@
 
 class BackgroundRenderer {
 private:
-  GLuint mDefaultProgram{}, mCameraProgram{};
+  GLuint mCameraProgram{};
   GLint mCameraTextureUniform{}, mCameraPositionAttrib{}, mCameraTexCoordAttrib{};
 
 public:

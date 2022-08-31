@@ -1,7 +1,3 @@
-//
-// Created by vladislav on 8/23/22.
-//
-
 #include "ar_ui_renderer.h"
 
 ArUiRenderer::ArUiRenderer() = default;

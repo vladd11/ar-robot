@@ -5,8 +5,10 @@ inline Engine *native(jlong pointer) {
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz) {
-  return ((jlong) new Engine());
+Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz,
+                                                     jobject j_asset_manager) {
+  AAssetManager *assetManager = AAssetManager_fromJava(env, j_asset_manager);
+  return ((jlong) new Engine(assetManager));
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -42,4 +44,19 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong pointer) {
   native(pointer)->pause();
+}
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_vladd11_arshop_NativeEngine_takeFrame(JNIEnv *env, jobject thiz, jlong pointer) {
+  //native(pointer)->takeFrame();
+
+  jbyte array[3] = {
+      0x0,
+      0x0,
+      0x0
+  };
+
+  jobject result = env->NewDirectByteBuffer(array, 3);
+
+  return result;
 }
