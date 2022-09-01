@@ -53,8 +53,6 @@ void Engine::drawFrame() {
     LOGE("OnDrawFrame ArSession_update error");
   }
 
-  takeFrame();
-
   ArCamera *ar_camera;
   ArFrame_acquireCamera(mArSession, mArFrame, &ar_camera);
 
@@ -140,6 +138,8 @@ void Engine::drawFrame() {
 }
 
 void Engine::onTouch(float x, float y) {
+  takeFrame();
+
   if (mArFrame != nullptr && mArSession != nullptr) {
     ArCamera *arCamera;
     ArFrame_acquireCamera(mArSession, mArFrame, &arCamera);
@@ -192,6 +192,19 @@ void Engine::GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *
 
 void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
   if (mArSession == nullptr) {
+    ArInstallStatus install_status;
+    CHECKANDTHROW(
+        ArCoreApk_requestInstall(env, activity, true,
+                                 &install_status) == AR_SUCCESS,
+        env, "Please install Google Play Services for AR (ARCore).");
+
+    switch (install_status) {
+      case AR_INSTALL_STATUS_INSTALLED:
+        break;
+      case AR_INSTALL_STATUS_INSTALL_REQUESTED:
+        return;
+    }
+
     CHECKANDTHROW(ArSession_create(env, context, &mArSession) == AR_SUCCESS, env,
                   "Failed to create AR session")
 
@@ -244,38 +257,30 @@ void Engine::takeFrame() {
     ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
     LOGD("%i", planesCount);
 
-    int yLength, uLength, vLength;
+    int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
     ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
     ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
     ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
 
-    auto *yuv420 = new uint8_t[yLength + uLength + vLength];
-    memcpy(yuv420, y, yLength);
-    memcpy(yuv420 + yLength, u, uLength);
-    memcpy(yuv420 + yLength + uLength, v, vLength);
+    ArImage_getPlaneRowStride(mArSession, image, 0, &yStride);
+    ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
+    ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
 
-    int width, height, stride;
+    int width, height;
     ArImage_getWidth(mArSession, image, &width);
     ArImage_getHeight(mArSession, image, &height);
 
-    ArImage_getPlanePixelStride(mArSession, image, 1, &stride);
+    auto *argb8888 = new uint32_t[width * height];
+    ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
 
-    auto *argb8888 = new uint8_t[width * height * 4];
+    std::ofstream stream("/data/user/0/com.vladd11.arshop/cache/img", std::ios::out | std::ios::binary);
+    for(int i = 0; i < width * height; i++)
+      stream.write((char *) &argb8888[i], sizeof(uint32_t));
 
-    renderscript::RenderScriptToolkit::YuvFormat format = renderscript::RenderScriptToolkit::YuvFormat::YV12;
-    if(stride != 1) {
-      format = renderscript::RenderScriptToolkit::YuvFormat::NV21;
-    }
-
-    std::string base64 = base64_encode(argb8888, width * height * 4);
-    LOGD("%s", base64.c_str());
-    LOGD("%i %i %i %i", width, height, format);
-
-    renderscript::RenderScriptToolkit toolkit;
-    toolkit.yuvToRgb(yuv420, argb8888, width, height, format);
+    stream.close();
+    LOGD("%i %i", width, height);
 
     delete[](argb8888);
-    delete[](yuv420);
   }
   if (image != nullptr) {
     ArImage_release(image);

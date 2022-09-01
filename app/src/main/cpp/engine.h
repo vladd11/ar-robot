@@ -11,13 +11,14 @@
 #include <android/asset_manager.h>
 #include <jni.h>
 #include <stdlib.h>
+#include <fstream>
 
 #include "arcore_c_api.h"
 
 #include "shaders/default.h"
 #include "verts/triangle.h"
 #include "background_renderer.h"
-#include "yuv2rgb/YuvToRgb.h"
+#include "yuv2rgb.h"
 #include "base64.h"
 #include "ar_ui_renderer.h"
 #include "verts/triangle.h"
@@ -30,7 +31,7 @@ private:
     ArAnchor *anchor;
   };
 
-  std::vector<UiAnchor*> mAnchors;
+  std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
   BackgroundRenderer *mBackgroundRenderer;
   ArUiRenderer *mArUiRenderer;
