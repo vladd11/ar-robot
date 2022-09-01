@@ -8,7 +8,7 @@ extern "C" JNIEXPORT jlong JNICALL
 Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz,
                                                      jobject j_asset_manager) {
   AAssetManager *assetManager = AAssetManager_fromJava(env, j_asset_manager);
-  return ((jlong) new Engine(assetManager));
+  return ((jlong) new Engine());
 }
 
 extern "C" JNIEXPORT void JNICALL

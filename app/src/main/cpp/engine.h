@@ -42,7 +42,7 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
-  Engine(AAssetManager *assetManager);
+  Engine();
 
   ~Engine();
 

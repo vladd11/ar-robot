@@ -18,7 +18,7 @@
     return;                                                                \
   }
 
-Engine::Engine(AAssetManager *assetManager) {
+Engine::Engine() {
   mBackgroundRenderer = new BackgroundRenderer();
   mArUiRenderer = new ArUiRenderer();
 }
@@ -196,7 +196,7 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
     CHECKANDTHROW(
         ArCoreApk_requestInstall(env, activity, true,
                                  &install_status) == AR_SUCCESS,
-        env, "Please install Google Play Services for AR (ARCore).");
+        env, "Please install Google Play Services for AR (ARCore).")
 
     switch (install_status) {
       case AR_INSTALL_STATUS_INSTALLED:
