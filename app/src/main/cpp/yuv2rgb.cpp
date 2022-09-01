@@ -51,7 +51,7 @@ static inline uint32_t YUV2RGB(int nY, int nU, int nV) {
   nG = (nG >> 10) & 0xff;
   nB = (nB >> 10) & 0xff;
 
-  return 0xff000000 | (nR << 16) | (nG << 8) | nB;
+  return 0xff000000 | nB << 16 | nG << 8 | nR;
 }
 
 //  Accepts a YUV 4:2:0 image with a plane of 8 bit Y samples followed by

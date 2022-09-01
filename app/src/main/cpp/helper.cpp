@@ -5,9 +5,7 @@ inline Engine *native(jlong pointer) {
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz,
-                                                     jobject j_asset_manager) {
-  AAssetManager *assetManager = AAssetManager_fromJava(env, j_asset_manager);
+Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz) {
   return ((jlong) new Engine());
 }
 
@@ -48,15 +46,23 @@ Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong po
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_vladd11_arshop_NativeEngine_takeFrame(JNIEnv *env, jobject thiz, jlong pointer) {
-  //native(pointer)->takeFrame();
+  auto engine = native(pointer);
 
-  jbyte array[3] = {
-      0x0,
-      0x0,
-      0x0
-  };
+  int prevWidth = engine->mCaptureWidth;
+  int prevHeight = engine->mCaptureHeight;
 
-  jobject result = env->NewDirectByteBuffer(array, 3);
+  uint32_t *frame = engine->takeFrame();
+  if(frame == nullptr) return env->NewGlobalRef(nullptr);
+
+  int newWidth = engine->mCaptureWidth;
+  int newHeight = engine->mCaptureHeight;
+  if(prevWidth != newWidth || prevHeight != newHeight) {
+    jclass clazz = env->GetObjectClass(thiz);
+    jmethodID callback = env->GetMethodID(clazz, "onFrameSizeChanged", "(II)V");
+    env->CallVoidMethod(thiz, callback, engine->mCaptureWidth, engine->mCaptureHeight);
+  }
+
+  jobject result = env->NewDirectByteBuffer(frame, newWidth * newHeight * 4);
 
   return result;
 }

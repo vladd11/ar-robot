@@ -42,6 +42,7 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
+  int mCaptureWidth{}, mCaptureHeight{};
   Engine();
 
   ~Engine();
@@ -58,7 +59,7 @@ public:
 
   void pause();
 
-  void takeFrame();
+  uint32_t *takeFrame();
 
   void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 };

@@ -138,8 +138,6 @@ void Engine::drawFrame() {
 }
 
 void Engine::onTouch(float x, float y) {
-  takeFrame();
-
   if (mArFrame != nullptr && mArSession != nullptr) {
     ArCamera *arCamera;
     ArFrame_acquireCamera(mArSession, mArFrame, &arCamera);
@@ -242,8 +240,8 @@ void Engine::resize(int rotation, int width, int height) {
   }
 }
 
-void Engine::takeFrame() {
-  LOGD("take frame");
+uint32_t *Engine::takeFrame() {
+  uint32_t *argb8888 = nullptr;
   ArImage *image = nullptr;
   if (mArSession != nullptr && mArFrame != nullptr &&
       ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
@@ -255,7 +253,6 @@ void Engine::takeFrame() {
 
     int planesCount = 0;
     ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
-    LOGD("%i", planesCount);
 
     int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
     ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
@@ -270,19 +267,16 @@ void Engine::takeFrame() {
     ArImage_getWidth(mArSession, image, &width);
     ArImage_getHeight(mArSession, image, &height);
 
-    auto *argb8888 = new uint32_t[width * height];
+    mCaptureWidth = width;
+    mCaptureHeight = height;
+
+    argb8888 = new uint32_t[width * height];
     ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
 
-    std::ofstream stream("/data/user/0/com.vladd11.arshop/cache/img", std::ios::out | std::ios::binary);
-    for(int i = 0; i < width * height; i++)
-      stream.write((char *) &argb8888[i], sizeof(uint32_t));
-
-    stream.close();
-    LOGD("%i %i", width, height);
-
-    delete[](argb8888);
+    LOGD("Captured image with width:%i height:%i", width, height);
   }
   if (image != nullptr) {
     ArImage_release(image);
   }
+  return argb8888;
 }
