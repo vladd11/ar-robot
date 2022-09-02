@@ -14,7 +14,7 @@ import javax.microedition.khronos.opengles.GL10
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, FrameCapturer {
     private val nativeEngine = newNativeEngine()
-    //private val priceTagDetector = PriceTagDetector(context)
+    private val priceTagDetector = PriceTagDetector(context)
     private var frameWidth: Int = -1
     private var frameHeight: Int = -1
 
