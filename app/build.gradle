@@ -61,6 +61,7 @@ android {
 }
 
 dependencies {
+    implementation 'com.google.ar:core:1.33.0'
     natives 'com.google.ar:core:1.33.0'
 
     implementation 'androidx.core:core-ktx:1.8.0'
@@ -79,6 +80,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
     implementation 'org.tensorflow:tensorflow-lite-task-vision-play-services:0.4.2-beta03'
+    implementation 'com.google.android.gms:play-services-tflite-gpu:16.0.0-beta03'
 }
 
 task extractNativeLibraries() {

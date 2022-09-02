@@ -19,9 +19,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         glSurfaceView = findViewById(R.id.surfaceView)
+
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        navController = navHostFragment.navController
+        navController = navHostFragment.navController.also {
+            it.navigate(R.id.dummyFragment)
+        }
     }
 
     override fun onResume() {
