@@ -10,6 +10,7 @@ import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.concurrent.thread
 
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, FrameCapturer {
@@ -61,7 +62,9 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
     }
 
     fun onTouch(x: Float, y: Float) {
-        takeFrame()
+        thread {
+            takeFrame()
+        }
         onTouch(nativeEngine, x, y)
     }
 

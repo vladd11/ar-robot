@@ -12,7 +12,6 @@
 #include <jni.h>
 #include <stdlib.h>
 #include <fstream>
-#include <thread>
 
 #include "arcore_c_api.h"
 
@@ -40,17 +39,10 @@ private:
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
 
   bool IsUvMapsInitialized{};
-  bool mShouldTakeFrame{};
-  bool mShouldPause{};
   float mTransformedUVs[kNumVertices * 2]{};
 
-  jobject mThizGlobalRef{};
-  JNIEnv* mEnv{};
-
 public:
-
-  Engine(JNIEnv *env, jobject thiz);
-
+  Engine();
   ~Engine();
 
   void init();
@@ -65,11 +57,9 @@ public:
 
   void pause();
 
-  void takeFrame();
+  void takeFrame(JNIEnv *env, jobject thiz);
 
   void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
-
-  void takeFrameThread(JNIEnv *env, jobject thiz, JavaVM *vm);
 };
 
 
