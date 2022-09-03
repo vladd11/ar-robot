@@ -24,7 +24,7 @@ android {
                 arguments "-DANDROID_STL=c++_static",
                         "-DARCORE_LIBPATH=${buildDir}/arcore-native/jni",
                         "-DARCORE_INCLUDE=${project.rootDir}/libraries/include",
-                        "-DGLM_INCLUDE=${project.rootDir}/third_party/glm"
+                        "-DGLM_INCLUDE=${buildDir}/glm/glm"
             }
         }
         ndk {
@@ -97,8 +97,25 @@ task extractNativeLibraries() {
     }
 }
 
+task downloadGLM(type: Download) {
+    src 'https://github.com/g-truc/glm/releases/download/0.9.9.8/glm-0.9.9.8.zip'
+    dest new File(buildDir, 'glm.zip')
+    overwrite false
+}
+
+task downloadAndUnzipFile(dependsOn: downloadGLM, type: Copy) {
+    from zipTree(downloadGLM.dest)
+    into buildDir
+}
+
 tasks.whenTaskAdded {
-    task -> if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {
-        task.dependsOn(extractNativeLibraries)
+    task -> {
+        if(!file("${buildDir}/glm").exists()) {
+            task.dependsOn(downloadAndUnzipFile)
+        }
+
+        if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {
+            task.dependsOn(extractNativeLibraries)
+        }
     }
 }

@@ -14,9 +14,7 @@ import javax.microedition.khronos.opengles.GL10
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, FrameCapturer {
     private val nativeEngine = newNativeEngine()
-    private val priceTagDetector = PriceTagDetector(context)
-    private var frameWidth: Int = -1
-    private var frameHeight: Int = -1
+    //private val priceTagDetector = PriceTagDetector(context)
 
     companion object {
         @Suppress("unused")
@@ -34,37 +32,37 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
     private external fun onTouch(pointer: Long, x: Float, y: Float)
     private external fun onResume(pointer: Long, context: Context, activity: Activity)
     private external fun onPause(pointer: Long)
-    private external fun takeFrame(pointer: Long): ByteBuffer?
+    private external fun takeFrame(pointer: Long)
 
-    private fun takeFrame(): ByteBuffer? {
-        return takeFrame(nativeEngine)
+    private fun takeFrame() {
+        takeFrame(nativeEngine)
+    }
+
+    override fun onImageCaptured(buffer: ByteBuffer, width: Int, height: Int) {
+        val bitmap =
+            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+                copyPixelsFromBuffer(buffer)
+            }
+        try {
+            val output = FileOutputStream(
+                File(
+                    context.cacheDir.toString(),
+                    "test.jpg"
+                )
+            )
+            //priceTagDetector.detect(bitmap)
+
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
+            output.flush()
+            output.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun onTouch(x: Float, y: Float) {
+        takeFrame()
         onTouch(nativeEngine, x, y)
-
-        val buffer = takeFrame() // Usually takes around 30ms
-        if (buffer != null) {
-            val bitmap =
-                Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888).apply {
-                    copyPixelsFromBuffer(buffer)
-                }
-            try {
-                val output = FileOutputStream(
-                    File(
-                        context.cacheDir.toString(),
-                        "test.jpg"
-                    )
-                )
-                //priceTagDetector.detect(bitmap)
-
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
-                output.flush()
-                output.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
     }
 
     fun onResume(activity: Activity) {
@@ -90,10 +88,5 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
 
     override fun onDrawFrame(gl: GL10?) {
         onDrawFrame(nativeEngine)
-    }
-
-    override fun onFrameSizeChanged(width: Int, height: Int) {
-        frameWidth = width
-        frameHeight = height
     }
 }

@@ -18,15 +18,22 @@
     return;                                                                \
   }
 
-Engine::Engine() {
+Engine::Engine(JNIEnv *env, jobject thiz) {
   mBackgroundRenderer = new BackgroundRenderer();
   mArUiRenderer = new ArUiRenderer();
+
+  mEnv = env;
+  mThizGlobalRef = env->NewGlobalRef(thiz);
 }
 
 Engine::~Engine() {
   if (mArSession != nullptr) {
     ArSession_destroy(mArSession);
     ArFrame_destroy(mArFrame);
+  }
+
+  if (mThizGlobalRef != nullptr) {
+    mEnv->DeleteGlobalRef(mThizGlobalRef);
   }
 }
 
@@ -219,8 +226,58 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
 
     ArSession_setDisplayGeometry(mArSession, mDisplayRotation, mDisplayWidth, mDisplayHeight);
   }
+
+  ArCameraConfigFilter *filter;
+  ArCameraConfigFilter_create(mArSession, &filter);
+
+  ArCameraConfigList *list;
+  ArCameraConfigList_create(mArSession, &list);
+
+  ArSession_getSupportedCameraConfigsWithFilter(mArSession, filter, list);
+
+  int size;
+  ArCameraConfigList_getSize(mArSession, list, &size);
+
+  int32_t bestConfigIndex = 0;
+  int32_t worstResolution = 0;
+  for (int i = 0; i < size; i++) {
+    ArCameraConfig *config;
+    ArCameraConfig_create(mArSession, &config);
+
+    ArCameraConfigList_getItem(mArSession, list, i, config);
+
+    int width, height;
+    ArCameraConfig_getImageDimensions(mArSession, config, &width, &height);
+    int resolution = width * height;
+
+    if (resolution < worstResolution) {
+      worstResolution = resolution;
+    } else {
+      bestConfigIndex = i;
+    }
+
+    ArCameraConfig_destroy(config);
+  }
+
+  ArCameraConfig *config;
+
+  ArCameraConfig_create(mArSession, &config);
+  ArCameraConfigList_getItem(mArSession, list, bestConfigIndex, config);
+
+  ArSession_setCameraConfig(mArSession, config);
+
+  ArCameraConfig_destroy(config);
+  ArCameraConfigList_destroy(list);
+  ArCameraConfigFilter_destroy(filter);
+
   const ArStatus status = ArSession_resume(mArSession);
   CHECKANDTHROW(status == AR_SUCCESS, env, "Failed to resume AR session.")
+
+  JavaVM *vm;
+  env->GetJavaVM(&vm);
+
+  std::thread thread(&Engine::takeFrameThread, this, env, mThizGlobalRef, vm);
+  thread.detach();
 }
 
 void Engine::pause() {
@@ -240,43 +297,62 @@ void Engine::resize(int rotation, int width, int height) {
   }
 }
 
-uint32_t *Engine::takeFrame() {
-  uint32_t *argb8888 = nullptr;
-  ArImage *image = nullptr;
-  if (mArSession != nullptr && mArFrame != nullptr &&
-      ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
-    // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
+void Engine::takeFrame() {
+  shouldTakeFrame = true;
+}
 
-    const uint8_t *y;
-    const uint8_t *u;
-    const uint8_t *v;
+void Engine::takeFrameThread(JNIEnv *env, jobject thiz, JavaVM *vm) {
+  JavaVMAttachArgs args{};
+  args.name = "takeFrame";
+  args.group = nullptr;
+  args.version = JNI_VERSION_1_6;
 
-    int planesCount = 0;
-    ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
+  vm->AttachCurrentThread(&env, &args);
 
-    int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
-    ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
-    ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
-    ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    if (shouldTakeFrame) {
+      uint32_t *argb8888;
+      ArImage *image = nullptr;
+      if (mArSession != nullptr && mArFrame != nullptr &&
+          ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
+        // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
 
-    ArImage_getPlaneRowStride(mArSession, image, 0, &yStride);
-    ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
-    ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
+        const uint8_t *y;
+        const uint8_t *u;
+        const uint8_t *v;
 
-    int width, height;
-    ArImage_getWidth(mArSession, image, &width);
-    ArImage_getHeight(mArSession, image, &height);
+        int planesCount = 0;
+        ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
 
-    mCaptureWidth = width;
-    mCaptureHeight = height;
+        int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
+        ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
+        ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
+        ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
 
-    argb8888 = new uint32_t[width * height];
-    ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
+        ArImage_getPlaneRowStride(mArSession, image, 0, &yStride);
+        ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
+        ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
 
-    LOGD("Captured image with width:%i height:%i", width, height);
+        int width, height;
+        ArImage_getWidth(mArSession, image, &width);
+        ArImage_getHeight(mArSession, image, &height);
+
+        argb8888 = new uint32_t[width * height];
+        ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
+
+        LOGD("Captured image with width:%i height:%i", width, height);
+
+        jclass clazz = env->GetObjectClass(thiz);
+        jmethodID callback = env->GetMethodID(clazz, "onImageCaptured",
+                                              "(Ljava/nio/ByteBuffer;II)V");
+        env->CallVoidMethod(thiz, callback,
+                            env->NewDirectByteBuffer(argb8888, width * height * 4),
+                            width, height);
+      }
+      if (image != nullptr) {
+        ArImage_release(image);
+      }
+    }
   }
-  if (image != nullptr) {
-    ArImage_release(image);
-  }
-  return argb8888;
 }
