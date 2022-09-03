@@ -40,16 +40,16 @@ private:
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
 
   bool IsUvMapsInitialized{};
-
-  std::mutex mMutex;
-  std::condition_variable mCondition;
-
+  bool mShouldTakeFrame{};
+  bool mShouldPause{};
   float mTransformedUVs[kNumVertices * 2]{};
 
-  uint32_t *argb8888{};
+  jobject mThizGlobalRef{};
+  JNIEnv* mEnv{};
 
 public:
-  Engine();
+
+  Engine(JNIEnv *env, jobject thiz);
 
   ~Engine();
 
@@ -65,11 +65,11 @@ public:
 
   void pause();
 
-  void takeFrame(JNIEnv *env, jobject thiz);
+  void takeFrame();
 
   void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 
-  void takeFrameThread();
+  void takeFrameThread(JNIEnv *env, jobject thiz, JavaVM *vm);
 };
 
 
