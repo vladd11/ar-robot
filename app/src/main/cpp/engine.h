@@ -40,13 +40,15 @@ private:
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
 
   bool IsUvMapsInitialized{};
-  bool shouldTakeFrame{};
+  bool mShouldTakeFrame{};
+  bool mShouldPause{};
   float mTransformedUVs[kNumVertices * 2]{};
 
   jobject mThizGlobalRef{};
   JNIEnv* mEnv{};
 
 public:
+
   Engine(JNIEnv *env, jobject thiz);
 
   ~Engine();

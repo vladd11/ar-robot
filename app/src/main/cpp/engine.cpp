@@ -276,11 +276,13 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
   JavaVM *vm;
   env->GetJavaVM(&vm);
 
+  mShouldPause = false;
   std::thread thread(&Engine::takeFrameThread, this, env, mThizGlobalRef, vm);
   thread.detach();
 }
 
 void Engine::pause() {
+  mShouldPause = true;
   if (mArSession != nullptr) {
     ArSession_pause(mArSession);
   }
@@ -298,7 +300,7 @@ void Engine::resize(int rotation, int width, int height) {
 }
 
 void Engine::takeFrame() {
-  shouldTakeFrame = true;
+  mShouldTakeFrame = true;
 }
 
 void Engine::takeFrameThread(JNIEnv *env, jobject thiz, JavaVM *vm) {
@@ -311,7 +313,12 @@ void Engine::takeFrameThread(JNIEnv *env, jobject thiz, JavaVM *vm) {
 
   while (true) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    if (shouldTakeFrame) {
+
+    if(mShouldPause) {
+      break;
+    }
+
+    if (mShouldTakeFrame) {
       uint32_t *argb8888;
       ArImage *image = nullptr;
       if (mArSession != nullptr && mArFrame != nullptr &&
