@@ -6,7 +6,7 @@ inline Engine *native(jlong pointer) {
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz) {
-  return ((jlong) new Engine());
+  return ((jlong) new Engine(env, thiz));
 }
 
 extern "C" JNIEXPORT void JNICALL
