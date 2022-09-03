@@ -46,5 +46,5 @@ Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong po
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_takeFrame(JNIEnv *env, jobject thiz, jlong pointer) {
-  native(pointer)->takeFrame(env, thiz);
+  native(pointer)->takeFrame();
 }
