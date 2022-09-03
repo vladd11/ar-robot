@@ -18,22 +18,15 @@
     return;                                                                \
   }
 
-Engine::Engine(JNIEnv *env, jobject thiz) {
+Engine::Engine() {
   mBackgroundRenderer = new BackgroundRenderer();
   mArUiRenderer = new ArUiRenderer();
-
-  mEnv = env;
-  mThizGlobalRef = env->NewGlobalRef(thiz);
 }
 
 Engine::~Engine() {
   if (mArSession != nullptr) {
     ArSession_destroy(mArSession);
     ArFrame_destroy(mArFrame);
-  }
-
-  if (mThizGlobalRef != nullptr) {
-    mEnv->DeleteGlobalRef(mThizGlobalRef);
   }
 }
 
@@ -272,17 +265,9 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
 
   const ArStatus status = ArSession_resume(mArSession);
   CHECKANDTHROW(status == AR_SUCCESS, env, "Failed to resume AR session.")
-
-  JavaVM *vm;
-  env->GetJavaVM(&vm);
-
-  mShouldPause = false;
-  std::thread thread(&Engine::takeFrameThread, this, env, mThizGlobalRef, vm);
-  thread.detach();
 }
 
 void Engine::pause() {
-  mShouldPause = true;
   if (mArSession != nullptr) {
     ArSession_pause(mArSession);
   }
@@ -299,67 +284,54 @@ void Engine::resize(int rotation, int width, int height) {
   }
 }
 
-void Engine::takeFrame() {
-  mShouldTakeFrame = true;
+void Engine::takeFrame(JNIEnv *env, jobject thiz) {
+  mMutex.lock();
+
+  std::thread thread = std::thread(&Engine::takeFrameThread, this);
+  thread.detach();
+
+  std::unique_lock lock = std::unique_lock(mMutex);
+  mCondition.wait(lock, [this, &env] {
+      env->NewDirectByteBuffer(nullptr, 0);
+      return true;
+  });
 }
 
-void Engine::takeFrameThread(JNIEnv *env, jobject thiz, JavaVM *vm) {
-  JavaVMAttachArgs args{};
-  args.name = "takeFrame";
-  args.group = nullptr;
-  args.version = JNI_VERSION_1_6;
+void Engine::takeFrameThread() {
+  ArImage *image = nullptr;
+  if (mArSession != nullptr && mArFrame != nullptr &&
+      ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
+    // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
 
-  vm->AttachCurrentThread(&env, &args);
+    const uint8_t *y;
+    const uint8_t *u;
+    const uint8_t *v;
 
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    int planesCount = 0;
+    ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
 
-    if(mShouldPause) {
-      break;
-    }
+    int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
+    ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
+    ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
+    ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
 
-    if (mShouldTakeFrame) {
-      uint32_t *argb8888;
-      ArImage *image = nullptr;
-      if (mArSession != nullptr && mArFrame != nullptr &&
-          ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
-        // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
+    ArImage_getPlaneRowStride(mArSession, image, 0, &yStride);
+    ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
+    ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
 
-        const uint8_t *y;
-        const uint8_t *u;
-        const uint8_t *v;
+    int width, height;
+    ArImage_getWidth(mArSession, image, &width);
+    ArImage_getHeight(mArSession, image, &height);
 
-        int planesCount = 0;
-        ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
+    argb8888 = new uint32_t[width * height];
+    ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
 
-        int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
-        ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
-        ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
-        ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
-
-        ArImage_getPlaneRowStride(mArSession, image, 0, &yStride);
-        ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
-        ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
-
-        int width, height;
-        ArImage_getWidth(mArSession, image, &width);
-        ArImage_getHeight(mArSession, image, &height);
-
-        argb8888 = new uint32_t[width * height];
-        ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
-
-        LOGD("Captured image with width:%i height:%i", width, height);
-
-        jclass clazz = env->GetObjectClass(thiz);
-        jmethodID callback = env->GetMethodID(clazz, "onImageCaptured",
-                                              "(Ljava/nio/ByteBuffer;II)V");
-        env->CallVoidMethod(thiz, callback,
-                            env->NewDirectByteBuffer(argb8888, width * height * 4),
-                            width, height);
-      }
-      if (image != nullptr) {
-        ArImage_release(image);
-      }
-    }
+    LOGD("Captured image with width:%i height:%i", width, height);
   }
+  if (image != nullptr) {
+    ArImage_release(image);
+  }
+
+  mMutex.unlock();
+  mCondition.notify_one();
 }
