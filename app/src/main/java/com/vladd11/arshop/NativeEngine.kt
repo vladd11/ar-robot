@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLSurfaceView
+import androidx.annotation.Keep
 import com.vladd11.arshop.jni.FrameCapturer
 import java.io.File
 import java.io.FileOutputStream
@@ -39,6 +40,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
         takeFrame(nativeEngine)
     }
 
+    @Keep
     override fun onImageCaptured(buffer: ByteBuffer, width: Int, height: Int) {
         val bitmap =
             Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
@@ -47,7 +49,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
         try {
             val output = FileOutputStream(
                 File(
-                    context.cacheDir.toString(),
+                    context.getExternalFilesDir("img").toString(),
                     "test.jpg"
                 )
             )
