@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLSurfaceView
+import android.util.Log
 import androidx.annotation.Keep
 import com.vladd11.arshop.jni.FrameCapturer
 import java.io.File
@@ -41,7 +42,12 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
     }
 
     @Keep
-    override fun onImageCaptured(buffer: ByteBuffer, width: Int, height: Int) {
+    override fun onImageCaptured(buffer: ByteBuffer?, width: Int, height: Int) {
+        if(buffer == null || width == 0 || height == 0) {
+            Log.d(TAG, "Buffer is null")
+            return
+        }
+
         val bitmap =
             Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
                 copyPixelsFromBuffer(buffer)

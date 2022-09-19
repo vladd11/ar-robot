@@ -19,11 +19,15 @@
 #include "verts/triangle.h"
 #include "background_renderer.h"
 #include "yuv2rgb.h"
-#include "base64.h"
 #include "ar_ui_renderer.h"
 #include "verts/triangle.h"
 #include "glm.h"
 
+
+struct CaptureResult {
+  uint32_t *frame;
+  int width, height;
+};
 
 class Engine {
 private:
@@ -43,6 +47,7 @@ private:
 
 public:
   Engine();
+
   ~Engine();
 
   void init();
@@ -57,10 +62,9 @@ public:
 
   void pause();
 
-  void takeFrame(JNIEnv *env, jobject thiz);
+  CaptureResult takeFrame();
 
   void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 };
-
 
 #endif //AR_SHOP_ENGINE_H

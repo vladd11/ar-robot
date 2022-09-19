@@ -284,10 +284,11 @@ void Engine::resize(int rotation, int width, int height) {
   }
 }
 
-void Engine::takeFrame(JNIEnv *env, jobject thiz) {
-  uint32_t *argb8888;
+CaptureResult Engine::takeFrame() {
+  uint32_t *argb8888 = nullptr;
   ArImage *image = nullptr;
-  if (mArSession != nullptr && mArFrame != nullptr &&
+  int width = 0, height = 0;
+  if (false && mArSession != nullptr && mArFrame != nullptr &&
       ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
     // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
 
@@ -307,7 +308,6 @@ void Engine::takeFrame(JNIEnv *env, jobject thiz) {
     ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
     ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
 
-    int width, height;
     ArImage_getWidth(mArSession, image, &width);
     ArImage_getHeight(mArSession, image, &height);
 
@@ -315,15 +315,9 @@ void Engine::takeFrame(JNIEnv *env, jobject thiz) {
     ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
 
     LOGD("Captured image with width:%i height:%i", width, height);
-
-    jclass clazz = env->GetObjectClass(thiz);
-    jmethodID callback = env->GetMethodID(clazz, "onImageCaptured",
-                                          "(Ljava/nio/ByteBuffer;II)V");
-    env->CallVoidMethod(thiz, callback,
-                        env->NewDirectByteBuffer(argb8888, width * height * 4),
-                        width, height);
   }
   if (image != nullptr) {
     ArImage_release(image);
   }
+  return CaptureResult{argb8888, width, height};
 }

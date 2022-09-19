@@ -23,7 +23,6 @@ add_library(
         engine.cpp
         background_renderer.cpp
         ar_ui_renderer.cpp
-        base64.cpp
         round_radians.cpp
         glError.cpp
 

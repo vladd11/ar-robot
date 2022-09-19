@@ -46,5 +46,21 @@ Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong po
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_takeFrame(JNIEnv *env, jobject thiz, jlong pointer) {
-  native(pointer)->takeFrame(env, thiz);
+  CaptureResult frame = native(pointer)->takeFrame();
+  if (frame.frame == nullptr) {
+    jclass clazz = env->GetObjectClass(thiz);
+    jmethodID callback = env->GetMethodID(clazz, "onImageCaptured",
+                                          "(Ljava/nio/ByteBuffer;II)V");
+
+    env->CallVoidMethod(thiz, callback,
+                        nullptr,
+                        frame.width, frame.height);
+  }
+
+  jclass clazz = env->GetObjectClass(thiz);
+  jmethodID callback = env->GetMethodID(clazz, "onImageCaptured",
+                                        "(Ljava/nio/ByteBuffer;II)V");
+  env->CallVoidMethod(thiz, callback,
+                      env->NewDirectByteBuffer(frame.frame, frame.width * frame.height * 4),
+                      frame.width, frame.height);
 }
