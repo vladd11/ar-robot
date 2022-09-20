@@ -43,7 +43,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
 
     @Keep
     override fun onImageCaptured(buffer: ByteBuffer?, width: Int, height: Int) {
-        if(buffer == null || width == 0 || height == 0) {
+        if(buffer == null) {
             Log.d(TAG, "Buffer is null")
             return
         }

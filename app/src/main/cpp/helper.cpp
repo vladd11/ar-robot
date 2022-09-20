@@ -43,6 +43,7 @@ JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong pointer) {
   native(pointer)->pause();
 }
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_takeFrame(JNIEnv *env, jobject thiz, jlong pointer) {
@@ -55,6 +56,7 @@ Java_com_vladd11_arshop_NativeEngine_takeFrame(JNIEnv *env, jobject thiz, jlong 
     env->CallVoidMethod(thiz, callback,
                         nullptr,
                         frame.width, frame.height);
+    return;
   }
 
   jclass clazz = env->GetObjectClass(thiz);

@@ -12,12 +12,16 @@ namespace Triangle {
       -1.0f, -1.0f, 0.0f,
       +1.0f, -1.0f, 0.0f,
       -1.0f, +1.0f, 0.0f,
-      +1.0f, +1.0f, 0.0f
+      +1.0f, +1.0f, 0.0f,
+      1.0f, -1.0f, -0.0f,
+      -1.0f, -1.0f, 0.0f,
+      1.0f, 1.0f, -0.0f,
+      -1.0f, 1.0f, 0.0f
   };
   const GLfloat kColors[] = {
       0.63671875f, 0.76953125f, 0.22265625f, 1.0f
   };
-  const GLuint kNumVertices = 4;
+  const GLuint kNumVertices = 8;
 }
 
 #endif //AR_SHOP_TRIANGLE_H
