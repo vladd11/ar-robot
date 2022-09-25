@@ -17,7 +17,7 @@ import kotlin.concurrent.thread
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, FrameCapturer {
     private val nativeEngine = newNativeEngine()
-    //private val priceTagDetector = PriceTagDetector(context)
+    private val priceTagDetector = PriceTagDetector(context)
 
     companion object {
         @Suppress("unused")
@@ -53,20 +53,14 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
                 copyPixelsFromBuffer(buffer)
             }
         try {
-            val output = FileOutputStream(
-                File(
-                    context.getExternalFilesDir("img").toString(),
-                    "test.jpg"
-                )
-            )
-            //priceTagDetector.detect(bitmap)
-
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
-            output.flush()
-            output.close()
+            priceTagDetector.detect(bitmap)
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    fun onDestroy() {
+        priceTagDetector.close()
     }
 
     fun onTouch(x: Float, y: Float) {

@@ -206,14 +206,15 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
     CHECKANDTHROW(ArSession_create(env, context, &mArSession) == AR_SUCCESS, env,
                   "Failed to create AR session")
 
-    ArConfig *ar_config = nullptr;
-    ArConfig_create(mArSession, &ar_config);
+    ArConfig *arConfig = nullptr;
+    ArConfig_create(mArSession, &arConfig);
 
-    ArConfig_setDepthMode(mArSession, ar_config, AR_DEPTH_MODE_DISABLED);
+    ArConfig_setFocusMode(mArSession, arConfig, AR_FOCUS_MODE_AUTO);
+    ArConfig_setDepthMode(mArSession, arConfig, AR_DEPTH_MODE_DISABLED);
 
-    CHECK(ar_config)
-    CHECK(ArSession_configure(mArSession, ar_config) == AR_SUCCESS)
-    ArConfig_destroy(ar_config);
+    CHECK(arConfig)
+    CHECK(ArSession_configure(mArSession, arConfig) == AR_SUCCESS)
+    ArConfig_destroy(arConfig);
 
     ArFrame_create(mArSession, &mArFrame);
 
@@ -242,24 +243,25 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
     int width, height;
     ArCameraConfig_getImageDimensions(mArSession, config, &width, &height);
     int resolution = width * height;
+    LOGD("Available resolution: %dx%d", width, height);
 
     if (resolution < worstResolution) {
       worstResolution = resolution;
-    } else {
+    } else if(resolution != worstResolution) {
       bestConfigIndex = i;
     }
 
     ArCameraConfig_destroy(config);
   }
 
-  ArCameraConfig *config;
+  ArCameraConfig *cameraConfig;
 
-  ArCameraConfig_create(mArSession, &config);
-  ArCameraConfigList_getItem(mArSession, list, bestConfigIndex, config);
+  ArCameraConfig_create(mArSession, &cameraConfig);
+  ArCameraConfigList_getItem(mArSession, list, bestConfigIndex, cameraConfig);
 
-  ArSession_setCameraConfig(mArSession, config);
+  ArSession_setCameraConfig(mArSession, cameraConfig);
 
-  ArCameraConfig_destroy(config);
+  ArCameraConfig_destroy(cameraConfig);
   ArCameraConfigList_destroy(list);
   ArCameraConfigFilter_destroy(filter);
 
@@ -288,7 +290,7 @@ CaptureResult Engine::takeFrame() {
   uint32_t *argb8888 = nullptr;
   ArImage *image = nullptr;
   int width = 0, height = 0;
-  if (false && mArSession != nullptr && mArFrame != nullptr &&
+  if (mArSession != nullptr && mArFrame != nullptr &&
       ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
     // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
 

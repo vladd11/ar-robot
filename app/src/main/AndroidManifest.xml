@@ -4,6 +4,7 @@
     package="com.vladd11.arshop">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Limits app visibility in the Google Play Store to ARCore supported devices
          (https://developers.google.com/ar/devices). -->
     <uses-feature
@@ -22,6 +23,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ARShop"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <profileable android:shell="true" />
         <activity

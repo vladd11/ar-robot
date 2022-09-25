@@ -45,6 +45,10 @@ class ArSurfaceView(context: Context, attrs: AttributeSet) : GLSurfaceView(conte
         nativeEngine.onResume(activity)
     }
 
+    fun destroy() {
+        nativeEngine.onDestroy();
+    }
+
     fun pause() {
         onPause()
         nativeEngine.onPause()

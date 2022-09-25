@@ -37,6 +37,11 @@ class MainActivity : AppCompatActivity() {
         glSurfaceView.pause()
     }
 
+    override fun onDestroy() {
+        glSurfaceView.destroy()
+        super.onDestroy()
+    }
+
     private fun hideSystemBars() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             systemBarsBehavior =
