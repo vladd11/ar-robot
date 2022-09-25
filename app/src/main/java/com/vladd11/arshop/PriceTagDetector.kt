@@ -13,10 +13,8 @@ import org.tensorflow.lite.task.core.BaseOptions
 import org.tensorflow.lite.task.gms.vision.TfLiteVision
 import org.tensorflow.lite.task.gms.vision.detector.ObjectDetector
 import java.io.ByteArrayOutputStream
-import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-import javax.net.ssl.HttpsURLConnection
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -97,11 +95,11 @@ class PriceTagDetector(context: Context) {
                 }
             }
 
-            bitmaps.forEach { bitmap ->
+            bitmaps.forEach { img ->
                 val url = URL("http://192.168.1.100:3000/")
 
                 val writer = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, writer)
+                img.compress(Bitmap.CompressFormat.JPEG, 90, writer)
 
                 with(url.openConnection() as HttpURLConnection) {
                     setRequestProperty("Content-Type", "image/jpeg")
