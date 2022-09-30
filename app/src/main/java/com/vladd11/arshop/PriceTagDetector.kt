@@ -3,18 +3,21 @@ package com.vladd11.arshop
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.RectF
+import android.os.Message
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.tflite.client.TfLiteInitializationOptions
 import com.google.android.gms.tflite.java.TfLite
+import com.google.protobuf.ByteString
+import com.vladd11.TestOuterClass
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.task.core.BaseOptions
 import org.tensorflow.lite.task.gms.vision.TfLiteVision
 import org.tensorflow.lite.task.gms.vision.detector.ObjectDetector
-import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.concurrent.thread
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -95,21 +98,20 @@ class PriceTagDetector(context: Context) {
                 }
             }
 
-            bitmaps.forEach { img ->
-                val url = URL("http://192.168.1.100:3000/")
-
-                val writer = ByteArrayOutputStream()
-                img.compress(Bitmap.CompressFormat.JPEG, 90, writer)
-
+            thread {
+                val url = URL("http://[fe80::1151:da13:da7d:d23a]:3000/")
                 with(url.openConnection() as HttpURLConnection) {
                     setRequestProperty("Content-Type", "image/jpeg")
                     doOutput = true
                     requestMethod = "POST"
 
-                    outputStream.write(writer.size())
-                    writer.writeTo(outputStream)
-                    writer.close()
-
+                    val builder = TestOuterClass.Test.newBuilder()
+                    bitmaps.forEach { img ->
+                        val bytes = ByteString.newOutput()
+                        img.compress(Bitmap.CompressFormat.PNG, 90, bytes)
+                        builder.addImages(bytes.toByteString())
+                    }
+                    builder.build().writeDelimitedTo(outputStream)
                     outputStream.close()
 
                     Log.d(TAG, "sent to server with $responseCode code")

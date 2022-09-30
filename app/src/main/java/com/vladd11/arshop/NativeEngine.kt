@@ -4,11 +4,12 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLSurfaceView
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
 import android.util.Log
 import androidx.annotation.Keep
 import com.vladd11.arshop.jni.FrameCapturer
-import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -17,11 +18,27 @@ import kotlin.concurrent.thread
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, FrameCapturer {
     private val nativeEngine = newNativeEngine()
-    private val priceTagDetector = PriceTagDetector(context)
+    private lateinit var priceTagDetector: PriceTagDetector
+    private lateinit var handler: Handler
+
+    init {
+        thread(isDaemon = true) {
+            Looper.prepare()
+            handler = Handler(Looper.getMainLooper(), Handler.Callback {
+                if (it.what == TOUCH_MESSAGE) {
+                    takeFrame()
+                    return@Callback true
+                }
+                return@Callback false
+            })
+
+            priceTagDetector = PriceTagDetector(context)
+        }
+    }
 
     companion object {
-        @Suppress("unused")
         private const val TAG = "NativeEngine"
+        private const val TOUCH_MESSAGE = 0xD1A1ED
 
         init {
             System.loadLibrary("arshop")
@@ -43,7 +60,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
 
     @Keep
     override fun onImageCaptured(buffer: ByteBuffer?, width: Int, height: Int) {
-        if(buffer == null) {
+        if (buffer == null) {
             Log.d(TAG, "Buffer is null")
             return
         }
@@ -64,9 +81,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer, Frame
     }
 
     fun onTouch(x: Float, y: Float) {
-        thread {
-            takeFrame()
-        }
+        handler.sendEmptyMessage(TOUCH_MESSAGE)
         onTouch(nativeEngine, x, y)
     }
 

@@ -1,0 +1,6 @@
+syntax = "proto3";
+package com.vladd11;
+
+message Test {
+  repeated bytes images = 1;
+}
