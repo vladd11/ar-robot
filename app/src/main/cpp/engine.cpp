@@ -130,7 +130,7 @@ void Engine::drawFrame() {
     ArAnchor_getTrackingState(mArSession, uiAnchor->anchor,
                               &tracking_state);
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
-      GetTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
+      getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
 
       mArUiRenderer->draw(projection_mat * view_mat * model_mat);
     }
@@ -178,7 +178,7 @@ void Engine::onTouch(float x, float y) {
   }
 }
 
-void Engine::GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat) {
+void Engine::getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat) {
   ArPose *pose;
 
   ArPose_create(mArSession, nullptr, &pose);
@@ -284,42 +284,4 @@ void Engine::resize(int rotation, int width, int height) {
   if (mArSession != nullptr) {
     ArSession_setDisplayGeometry(mArSession, rotation, width, height);
   }
-}
-
-CaptureResult Engine::takeFrame() {
-  uint32_t *argb8888 = nullptr;
-  ArImage *image = nullptr;
-  int width = 0, height = 0;
-  if (mArSession != nullptr && mArFrame != nullptr &&
-      ArFrame_acquireCameraImage(mArSession, mArFrame, &image) == AR_SUCCESS) {
-    // It's image with Android YUV 420 format https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
-
-    const uint8_t *y;
-    const uint8_t *u;
-    const uint8_t *v;
-
-    int planesCount = 0;
-    ArImage_getNumberOfPlanes(mArSession, image, &planesCount);
-
-    int yLength, uLength, vLength, yStride, uvStride, uvPixelStride;
-    ArImage_getPlaneData(mArSession, image, 0, &y, &yLength);
-    ArImage_getPlaneData(mArSession, image, 1, &u, &uLength);
-    ArImage_getPlaneData(mArSession, image, 2, &v, &vLength);
-
-    ArImage_getPlaneRowStride(mArSession, image, 0, &yStride);
-    ArImage_getPlaneRowStride(mArSession, image, 1, &uvStride);
-    ArImage_getPlanePixelStride(mArSession, image, 1, &uvPixelStride);
-
-    ArImage_getWidth(mArSession, image, &width);
-    ArImage_getHeight(mArSession, image, &height);
-
-    argb8888 = new uint32_t[width * height];
-    ConvertYUV420ToARGB8888(y, u, v, argb8888, width, height, yStride, uvStride, uvPixelStride);
-
-    LOGD("Captured image with width:%i height:%i", width, height);
-  }
-  if (image != nullptr) {
-    ArImage_release(image);
-  }
-  return CaptureResult{argb8888, width, height};
 }

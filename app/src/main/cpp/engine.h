@@ -23,12 +23,6 @@
 #include "verts/triangle.h"
 #include "glm.h"
 
-
-struct CaptureResult {
-  uint32_t *frame;
-  int width, height;
-};
-
 class Engine {
 private:
   struct UiAnchor {
@@ -62,9 +56,7 @@ public:
 
   void pause();
 
-  CaptureResult takeFrame();
-
-  void GetTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
+  void getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 };
 
 #endif //AR_SHOP_ENGINE_H
