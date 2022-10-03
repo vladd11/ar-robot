@@ -1,9 +1,17 @@
 #include "ar_ui_renderer.h"
 
+#define TAG "ArUiRenderer"
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+
 ArUiRenderer::ArUiRenderer() = default;
 
 void ArUiRenderer::init() {
   mDefaultProgram = DefaultShader::compile();
+
+  GLfloat lineWidthRange[2] = {0.0f, 0.0f};
+  glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, lineWidthRange);
+  LOGD("%f", lineWidthRange[1]);
 }
 
 void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
@@ -26,7 +34,7 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
       Triangle::kVertices
   );
 
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, Triangle::kNumVertices);
+  glDrawArrays(GL_POINTS, 0, Triangle::kNumVertices);
 
   glDisableVertexAttribArray(DefaultShader::vPositionAttrIndex);
 

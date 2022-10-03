@@ -15,10 +15,12 @@ precision mediump float;
 uniform vec4 vColor;
 void main() {
   gl_FragColor = vColor;
+  gl_PointSize = 5.0f;
 }
 )";
 
   GLuint compile() {
+    glEnable(GL_PROGRAM_POINT_SIZE);
     GLuint vertexShader, fragmentShader;
     GLuint program = glCreateProgram();
     CompileShader(&vertexShader, GL_VERTEX_SHADER, vertexShaderCode);

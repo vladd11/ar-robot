@@ -3,18 +3,15 @@ package com.vladd11.arshop
 import android.app.Activity
 import android.content.Context
 import android.opengl.GLSurfaceView
-import android.os.Handler
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
     private val nativeEngine = newNativeEngine()
-    private lateinit var handler: Handler
 
     companion object {
         private const val TAG = "NativeEngine"
-        private const val TOUCH_MESSAGE = 0xD1A1ED
 
         init {
             System.loadLibrary("arshop")
@@ -34,7 +31,6 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     fun onTouch(x: Float, y: Float) {
-        handler.sendEmptyMessage(TOUCH_MESSAGE)
         onTouch(nativeEngine, x, y)
     }
 
