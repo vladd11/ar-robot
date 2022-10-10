@@ -6,17 +6,21 @@ plugins {
 }
 
 protobuf {
-    // Configure the protoc executable
-    protoc {
-        // Download from repositories
-        artifact = 'com.google.protobuf:protoc:3.8.0'
+    protoc { artifact = 'com.google.protobuf:protoc:3.10.0' }
+
+    plugins {
+        javalite { artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0" }
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.25.0' // CURRENT_GRPC_VERSION
+        }
     }
 
     generateProtoTasks {
         all().each { task ->
-            task.builtins {
-                java {
-                    option "lite"
+            task.plugins {
+                javalite {}
+                grpc { // Options added to --grpc_out
+                    option 'lite'
                 }
             }
         }
@@ -43,6 +47,7 @@ android {
                 arguments "-DANDROID_STL=c++_static",
                         "-DARCORE_LIBPATH=${buildDir}/arcore-native/jni",
                         "-DARCORE_INCLUDE=${project.rootDir}/libraries/include",
+                        "-DLUA_INCLUDE=${buildDir}/lua-5.4.4",
                         "-DGLM_INCLUDE=${buildDir}/glm/glm"
             }
         }
@@ -84,7 +89,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
+    implementation "io.grpc:grpc-protobuf-lite:1.25.0"
 
     implementation 'com.google.ar:core:1.33.0'
     natives 'com.google.ar:core:1.33.0'
@@ -128,15 +133,30 @@ task downloadGLM(type: Download) {
     overwrite false
 }
 
-task downloadAndUnzipFile(dependsOn: downloadGLM, type: Copy) {
+task downloadAndUnzipGLM(dependsOn: downloadGLM, type: Copy) {
     from zipTree(downloadGLM.dest)
+    into buildDir
+}
+
+task downloadLua(type: Download) {
+    src 'https://github.com/lua/lua/archive/refs/tags/v5.4.4.zip'
+    dest new File(buildDir, 'lua.zip')
+    overwrite false
+}
+
+task downloadAndUnzipLua(dependsOn: downloadLua, type: Copy) {
+    from zipTree(downloadLua.dest)
     into buildDir
 }
 
 tasks.whenTaskAdded {
     task -> {
         if(!file("${buildDir}/glm").exists()) {
-            task.dependsOn(downloadAndUnzipFile)
+            task.dependsOn(downloadAndUnzipGLM)
+        }
+
+        if(!file("${buildDir}/lua").exists()) {
+            task.dependsOn(downloadAndUnzipLua)
         }
 
         if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {

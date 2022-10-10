@@ -50,6 +50,10 @@ find_library(
         GLESv2
 )
 
+target_include_directories(
+        arshop PUBLIC ${LUA_INCLUDE}
+)
+
 target_link_libraries(
         arshop
 
