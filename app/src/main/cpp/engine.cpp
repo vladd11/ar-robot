@@ -31,6 +31,13 @@ Engine::~Engine() {
 }
 
 void Engine::init() {
+  lua_State *L = luaL_newstate();
+  luaL_dostring(L, "global = 0");
+
+  int global = lua_getglobal(L, "global");
+  int isNum;
+  LOGD("%f", lua_tonumberx(L, -1, &isNum));
+
   mBackgroundRenderer->init();
   mArUiRenderer->init();
 }
@@ -247,7 +254,7 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
 
     if (resolution < worstResolution) {
       worstResolution = resolution;
-    } else if(resolution != worstResolution) {
+    } else if (resolution != worstResolution) {
       bestConfigIndex = i;
     }
 

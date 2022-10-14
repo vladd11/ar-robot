@@ -39,7 +39,6 @@ precision mediump float;
 varying vec2 v_TexCoord;
 uniform samplerExternalOES sTexture;
 
-
 void main() {
     gl_FragColor = texture2D(sTexture, v_TexCoord);
 }
@@ -51,16 +50,16 @@ void main() {
     GLuint vertexShader, fragmentShader;
     GLuint program = glCreateProgram();
 
-    success = success | (!CompileShader(&vertexShader, GL_VERTEX_SHADER, vertexShaderCode));
-    success = success | (!CompileShader(&fragmentShader, GL_FRAGMENT_SHADER, fragmentShaderCode));
+    success = success & CompileShader(&vertexShader, GL_VERTEX_SHADER, vertexShaderCode);
+    success = success & CompileShader(&fragmentShader, GL_FRAGMENT_SHADER, fragmentShaderCode);
 
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
 
-    success = success | (!LinkProgram(program));
+    success = success & LinkProgram(program);
 
     if(!success) {
-      LOGE("Can't compile shader program");
+      LOGE("Can't compile shader program on %s:%i", __FILE__, __LINE__);
     }
     return program;
   }

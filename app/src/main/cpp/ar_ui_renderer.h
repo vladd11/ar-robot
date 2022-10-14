@@ -16,8 +16,7 @@
 
 class ArUiRenderer {
 private:
-  std::chrono::time_point<std::chrono::system_clock> initializationTime;
-  GLuint mDefaultProgram{};
+  GLuint mDefaultProgram{}, mElementBuffer{};
 
 public:
   ArUiRenderer();

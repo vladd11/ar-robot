@@ -50,9 +50,13 @@ find_library(
         GLESv2
 )
 
+add_library(lua STATIC "${LUA_INCLUDE}")
+target_include_directories(arshop PRIVATE "${LUA_INCLUDE}")
+
 target_link_libraries(
         arshop
 
+        lua
         ${log-lib}
         ${android-lib}
         ${gles-lib}

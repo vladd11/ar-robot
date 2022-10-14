@@ -5,6 +5,10 @@
 #ifndef AR_SHOP_ENGINE_H
 #define AR_SHOP_ENGINE_H
 
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/log.h>

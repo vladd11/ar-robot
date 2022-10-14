@@ -12,12 +12,16 @@ void ArUiRenderer::init() {
   GLfloat lineWidthRange[2] = {0.0f, 0.0f};
   glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, lineWidthRange);
   LOGD("%f", lineWidthRange[1]);
+
+  glGenBuffers(1, &mElementBuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, mElementBuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle::kVertices),
+               Triangle::kVertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
   glUseProgram(mDefaultProgram);
-
-  glEnableVertexAttribArray(DefaultShader::vPositionAttrIndex);
 
   GLint vColorLocation = glGetUniformLocation(mDefaultProgram, "vColor");
   glUniform4fv(vColorLocation, 1, Triangle::kColors);
@@ -25,18 +29,16 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
   GLint mvpLocation = glGetUniformLocation(mDefaultProgram, "mvp");
   glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(mvp));
 
-  glVertexAttribPointer(
-      DefaultShader::vPositionAttrIndex,
-      COORDS_PER_VERTEX,
-      GL_FLOAT,
-      false,
-      VERTEX_STRIDE,
-      Triangle::kVertices
+  glBindBuffer(GL_ARRAY_BUFFER, mElementBuffer);
+  glVertexAttribPointer(DefaultShader::vPositionAttrIndex, 3, GL_FLOAT, GL_FALSE, VERTEX_STRIDE, nullptr);
+  glEnableVertexAttribArray(DefaultShader::vPositionAttrIndex);
+
+  glDrawArrays(
+      GL_TRIANGLES,
+      0,
+      Triangle::kNumVertices
   );
-
-  glDrawArrays(GL_POINTS, 0, Triangle::kNumVertices);
-
-  glDisableVertexAttribArray(DefaultShader::vPositionAttrIndex);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   CheckGlError("Triangle draw failed");
   glUseProgram(0);
