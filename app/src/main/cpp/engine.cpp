@@ -34,9 +34,9 @@ void Engine::init() {
   lua_State *L = luaL_newstate();
   luaL_dostring(L, "global = 0");
 
-  int global = lua_getglobal(L, "global");
-  int isNum;
-  LOGD("%f", lua_tonumberx(L, -1, &isNum));
+  lua_getglobal(L, "global");
+  int test = 0;
+  LOGD("%lld", lua_tointegerx(L, -1, &test));
 
   mBackgroundRenderer->init();
   mArUiRenderer->init();

@@ -1,13 +1,11 @@
-//
-// Created by vladislav on 8/22/22.
-//
-
 #ifndef AR_SHOP_ENGINE_H
 #define AR_SHOP_ENGINE_H
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+extern "C" {
+#include "../../../build/lua/lua-5.4.4/lua.h"
+#include "../../../build/lua/lua-5.4.4/lauxlib.h"
+#include "../../../build/lua/lua-5.4.4/lualib.h"
+};
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>

@@ -25,7 +25,8 @@ android {
                         "-DARCORE_LIBPATH=${buildDir}/arcore-native/jni",
                         "-DARCORE_INCLUDE=${project.rootDir}/libraries/include",
                         "-DGLM_INCLUDE=${buildDir}/glm/glm",
-                        "-DLUA_INCLUDE=${buildDir}/lua-5.4.4"
+                        "-DLUA_INCLUDE=${buildDir}/lua",
+                        "-DLUA_BUILDDIR=${buildDir}/lua"
             }
         }
         ndk {
@@ -114,14 +115,20 @@ task downloadAndUnzipGLM(dependsOn: downloadGLM, type: Copy) {
 }
 
 task downloadLua(type: Download) {
+    mkdir "${buildDir}/lua"
     src 'https://github.com/lua/lua/archive/refs/tags/v5.4.4.zip'
     dest new File(buildDir, 'lua.zip')
     overwrite false
 }
 
+task copyLuaCMakeBuild(type: Copy) {
+    from "${projectDir}/lua/CMakeLists.txt"
+    into "${buildDir}/lua/"
+}
+
 task downloadAndUnzipLua(dependsOn: downloadLua, type: Copy) {
     from zipTree(downloadLua.dest)
-    into buildDir
+    into "${buildDir}/lua"
 }
 
 tasks.whenTaskAdded {
@@ -130,8 +137,9 @@ tasks.whenTaskAdded {
             task.dependsOn(downloadAndUnzipGLM)
         }
 
-        if(!file("${buildDir}/lua-5.4.4").exists()) {
+        if(!file("${buildDir}/lua").exists()) {
             task.dependsOn(downloadAndUnzipLua)
+            task.dependsOn(copyLuaCMakeBuild)
         }
 
         if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {
