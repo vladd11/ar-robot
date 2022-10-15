@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include <utility>
+
 #define TAG "Engine"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
@@ -18,7 +20,8 @@
     return;                                                                \
   }
 
-Engine::Engine() {
+Engine::Engine(std::string storagePath) {
+  mStoragePath = std::move(storagePath);
   mBackgroundRenderer = new BackgroundRenderer();
   mArUiRenderer = new ArUiRenderer();
 }
@@ -32,14 +35,22 @@ Engine::~Engine() {
 
 void Engine::init() {
   lua_State *L = luaL_newstate();
-  luaL_dostring(L, "global = 0");
+
+  luaL_dofile(L, mStoragePath.append("/script.lua").c_str());
 
   lua_getglobal(L, "global");
   int test = 0;
   LOGD("%lld", lua_tointegerx(L, -1, &test));
 
+  lua_register(L, "distanceToAnchor", distanceToAnchor);
+
   mBackgroundRenderer->init();
   mArUiRenderer->init();
+}
+
+int Engine::distanceToAnchor(lua_State *L) {
+  LOGD("test");
+  return 0;
 }
 
 void Engine::drawFrame() {

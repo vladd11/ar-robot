@@ -8,7 +8,7 @@ import javax.microedition.khronos.opengles.GL10
 
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
-    private val nativeEngine = newNativeEngine()
+    private val nativeEngine = newNativeEngine(context.getExternalFilesDir("scripts").toString())
 
     companion object {
         private const val TAG = "NativeEngine"
@@ -18,7 +18,7 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
         }
     }
 
-    private external fun newNativeEngine(): Long
+    private external fun newNativeEngine(storagePath: String): Long
     private external fun onSurfaceCreated(pointer: Long)
     private external fun onSurfaceChanged(pointer: Long, rotation: Int, width: Int, height: Int)
     private external fun onDrawFrame(pointer: Long)

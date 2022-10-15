@@ -8,8 +8,10 @@ inline Engine *native(jlong pointer) {
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz) {
-  return ((jlong) new Engine());
+Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz, jstring jStoragePath) {
+  std::string storagePath;
+  storagePath = env->GetStringUTFChars(jStoragePath, nullptr);
+  return ((jlong) new Engine(storagePath));
 }
 
 extern "C" JNIEXPORT void JNICALL

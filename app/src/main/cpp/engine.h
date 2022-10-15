@@ -31,6 +31,7 @@ private:
     ArAnchor *anchor;
   };
 
+  std::string mStoragePath;
   std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
   BackgroundRenderer *mBackgroundRenderer;
@@ -42,7 +43,7 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
-  Engine();
+  Engine(std::string storagePath);
 
   ~Engine();
 
@@ -59,6 +60,8 @@ public:
   void pause();
 
   void getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
+
+  static int distanceToAnchor(lua_State *L);
 };
 
 #endif //AR_SHOP_ENGINE_H
