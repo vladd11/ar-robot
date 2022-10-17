@@ -36,13 +36,13 @@ Engine::~Engine() {
 void Engine::init() {
   lua_State *L = luaL_newstate();
 
+  lua_register(L, "distanceToAnchor", distanceToAnchor);
   luaL_dofile(L, mStoragePath.append("/script.lua").c_str());
 
   lua_getglobal(L, "global");
   int test = 0;
   LOGD("%lld", lua_tointegerx(L, -1, &test));
 
-  lua_register(L, "distanceToAnchor", distanceToAnchor);
 
   mBackgroundRenderer->init();
   mArUiRenderer->init();

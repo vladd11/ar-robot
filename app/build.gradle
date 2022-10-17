@@ -103,22 +103,14 @@ task extractNativeLibraries() {
     }
 }
 
-task downloadGLM(type: Download) {
-    src 'https://github.com/g-truc/glm/releases/download/0.9.9.8/glm-0.9.9.8.zip'
-    dest new File(buildDir, 'glm.zip')
-    overwrite false
-}
-
-task downloadAndUnzipGLM(dependsOn: downloadGLM, type: Copy) {
-    from zipTree(downloadGLM.dest)
+task unzipGLM(type: Copy) {
+    from zipTree("${buildDir}/${GLM_FILE}")
     into buildDir
 }
 
-task downloadLua(type: Download) {
-    mkdir "${buildDir}/lua"
-    src 'https://github.com/lua/lua/archive/refs/tags/v5.4.4.zip'
-    dest new File(buildDir, 'lua.zip')
-    overwrite false
+task unzipLua(type: Copy) {
+    from zipTree("${buildDir}/${LUA_FILE}")
+    into "${buildDir}/lua"
 }
 
 task copyLuaCMakeBuild(type: Copy) {
@@ -127,24 +119,31 @@ task copyLuaCMakeBuild(type: Copy) {
     into "${buildDir}/lua/"
 }
 
-task downloadAndUnzipLua(dependsOn: downloadLua, type: Copy) {
-    from zipTree(downloadLua.dest)
-    into "${buildDir}/lua"
+task downloadLibs(type: Download) {
+    mkdir "${buildDir}/lua"
+    src([
+            "https://github.com/lua/lua/archive/refs/tags/${LUA_FILE}",
+            "https://github.com/g-truc/glm/releases/download/0.9.9.8/${GLM_FILE}"
+    ])
+    dest buildDir
+    overwrite false
+
+    doLast() {
+        unzipGLM
+        unzipLua
+        copyLuaCMakeBuild
+    }
 }
 
 tasks.whenTaskAdded {
-    task -> {
-        if(!file("${buildDir}/glm").exists()) {
-            task.dependsOn(downloadAndUnzipGLM)
-        }
+    task ->
+        {
+            if (!(file("${buildDir}/glm").exists() && file("${buildDir}/lua").exists())) {
+                task.dependsOn(downloadLibs)
+            }
 
-        if(!file("${buildDir}/lua").exists()) {
-            task.dependsOn(copyLuaCMakeBuild)
-            task.dependsOn(downloadAndUnzipLua)
+            if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {
+                task.dependsOn(extractNativeLibraries)
+            }
         }
-
-        if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {
-            task.dependsOn(extractNativeLibraries)
-        }
-    }
 }
