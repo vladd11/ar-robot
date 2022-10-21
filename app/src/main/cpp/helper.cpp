@@ -1,14 +1,12 @@
 #include "helper.h"
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "UnusedParameter"
-
 inline Engine *native(jlong pointer) {
   return reinterpret_cast<Engine *>(pointer);
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz, jstring jStoragePath) {
+Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz,
+                                                     jstring jStoragePath) {
   std::string storagePath;
   storagePath = env->GetStringUTFChars(jStoragePath, nullptr);
   return ((jlong) new Engine(storagePath));
@@ -48,5 +46,3 @@ JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_onPause(JNIEnv *env, jobject thiz, jlong pointer) {
   native(pointer)->pause();
 }
-
-#pragma clang diagnostic pop

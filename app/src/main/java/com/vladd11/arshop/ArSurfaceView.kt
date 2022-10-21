@@ -11,7 +11,7 @@ import android.view.MotionEvent
 
 @SuppressLint("ClickableViewAccessibility")
 class ArSurfaceView(context: Context, attrs: AttributeSet) : GLSurfaceView(context, attrs) {
-    private val nativeEngine = NativeEngine(context)
+    val nativeEngine = NativeEngine(context)
     private val gestureDetector: GestureDetector
 
     init {
@@ -46,7 +46,7 @@ class ArSurfaceView(context: Context, attrs: AttributeSet) : GLSurfaceView(conte
     }
 
     fun destroy() {
-        nativeEngine.onDestroy();
+        nativeEngine.onDestroy()
     }
 
     fun pause() {

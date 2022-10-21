@@ -19,6 +19,8 @@ add_library(
         SHARED
 
         # Provides a relative path to your source file(s).
+        mongoose.c
+        server.cpp
         helper.cpp
         engine.cpp
         background_renderer.cpp

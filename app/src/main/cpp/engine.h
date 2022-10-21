@@ -7,6 +7,8 @@ extern "C" {
 #include "../../../build/lua/lua-5.4.4/lualib.h"
 };
 
+#include "mongoose.h"
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/log.h>
@@ -30,7 +32,6 @@ private:
   struct UiAnchor {
     ArAnchor *anchor;
   };
-
   std::string mStoragePath;
   std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
@@ -38,11 +39,14 @@ private:
   ArUiRenderer *mArUiRenderer;
   ArSession *mArSession{};
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
+  bool mInterrupt = false;
 
   bool IsUvMapsInitialized{};
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
+  lua_State *mLuaState;
+
   Engine(std::string storagePath);
 
   ~Engine();

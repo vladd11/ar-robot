@@ -1,6 +1,8 @@
 #include "engine.h"
+#include "server.h"
 
 #include <utility>
+#include <thread>
 
 #define TAG "Engine"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
@@ -21,12 +23,15 @@
   }
 
 Engine::Engine(std::string storagePath) {
+  mLuaState = luaL_newstate();
   mStoragePath = std::move(storagePath);
   mBackgroundRenderer = new BackgroundRenderer();
   mArUiRenderer = new ArUiRenderer();
 }
 
 Engine::~Engine() {
+  mInterrupt = true;
+  lua_close(mLuaState);
   if (mArSession != nullptr) {
     ArSession_destroy(mArSession);
     ArFrame_destroy(mArFrame);
@@ -34,15 +39,15 @@ Engine::~Engine() {
 }
 
 void Engine::init() {
-  lua_State *L = luaL_newstate();
+  std::thread thr = std::thread(server_thread, &mInterrupt);
+  thr.detach();
 
-  lua_register(L, "distanceToAnchor", distanceToAnchor);
-  luaL_dofile(L, mStoragePath.append("/script.lua").c_str());
+  lua_register(mLuaState, "distanceToAnchor", distanceToAnchor);
+  luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str());
 
-  lua_getglobal(L, "global");
+  lua_getglobal(mLuaState, "global");
   int test = 0;
-  LOGD("%lld", lua_tointegerx(L, -1, &test));
-
+  LOGD("%lld", lua_tointegerx(mLuaState, -1, &test));
 
   mBackgroundRenderer->init();
   mArUiRenderer->init();
