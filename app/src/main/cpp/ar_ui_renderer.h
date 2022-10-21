@@ -6,7 +6,7 @@
 #define AR_SHOP_AR_UI_RENDERER_H
 
 #include <GLES2/gl2.h>
-#include "glError.h"
+#include "gl_util.h"
 #include "shaders/default.h"
 #include "verts/triangle.h"
 #include "glm.h"

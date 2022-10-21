@@ -1,8 +1,4 @@
 #include "engine.h"
-#include "server.h"
-
-#include <utility>
-#include <thread>
 
 #define TAG "Engine"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
@@ -22,10 +18,12 @@
     return;                                                                \
   }
 
-Engine::Engine(std::string storagePath) {
+Engine::Engine(std::string storagePath, JNIEnv* env) {
   mLuaState = luaL_newstate();
   mStoragePath = std::move(storagePath);
+  mServerThread = new ServerThread(&mInterrupt);
   mBackgroundRenderer = new BackgroundRenderer();
+  mPlaneRenderer = new PlaneRenderer(env);
   mArUiRenderer = new ArUiRenderer();
 }
 
@@ -36,10 +34,13 @@ Engine::~Engine() {
     ArSession_destroy(mArSession);
     ArFrame_destroy(mArFrame);
   }
+  delete mServerThread;
 }
 
 void Engine::init() {
-  std::thread thr = std::thread(server_thread, &mInterrupt);
+  std::thread thr{[this] {
+      (*mServerThread)();
+  }};
   thr.detach();
 
   lua_register(mLuaState, "distanceToAnchor", distanceToAnchor);
@@ -49,6 +50,7 @@ void Engine::init() {
   int test = 0;
   LOGD("%lld", lua_tointegerx(mLuaState, -1, &test));
 
+  mPlaneRenderer->init();
   mBackgroundRenderer->init();
   mArUiRenderer->init();
 }
@@ -59,6 +61,12 @@ int Engine::distanceToAnchor(lua_State *L) {
 }
 
 void Engine::drawFrame() {
+  if (mServerThread->mUpdateCode) {
+    LOGD("Loaded new code from peer");
+    luaL_dostring(mLuaState, mServerThread->mCodeStr->c_str());
+    mServerThread->mUpdateCode = false;
+  }
+
   // Render the scene.
   glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -82,6 +90,7 @@ void Engine::drawFrame() {
   ArPose *pose = nullptr;
   ArPose_create(mArSession, nullptr, &pose);
   ArCamera_getPose(mArSession, ar_camera, pose);
+  ArPose_destroy(pose);
 
   // If display rotation changed (also includes view size change), we need to
   // re-query the uv coordinates for the on-screen portion of the camera image.
@@ -109,7 +118,6 @@ void Engine::drawFrame() {
 
   ArTrackingState camera_tracking_state;
   ArCamera_getTrackingState(mArSession, ar_camera, &camera_tracking_state);
-  ArCamera_release(ar_camera);
 
   ArTrackableList *plane_list = nullptr;
   ArTrackableList_create(mArSession, &plane_list);
@@ -141,6 +149,8 @@ void Engine::drawFrame() {
       ArTrackable_release(ar_trackable);
       continue;
     }
+    mPlaneRenderer->draw(projection_mat, view_mat, *ar_plane);
+
     ArTrackable_release(ar_trackable);
   }
 
@@ -148,6 +158,7 @@ void Engine::drawFrame() {
   plane_list = nullptr;
 
   glm::mat4 model_mat(1.0f);
+  float out_pose[7];
   for (auto &uiAnchor: mAnchors) {
     ArTrackingState tracking_state = AR_TRACKING_STATE_STOPPED;
     ArAnchor_getTrackingState(mArSession, uiAnchor->anchor,
@@ -155,9 +166,16 @@ void Engine::drawFrame() {
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
       getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
 
+      getCameraPosition(*ar_camera, out_pose);
+
+      auto pos = model_mat[2];
+      glm::vec3 vec(pos[0] - out_pose[0], pos[1] - out_pose[1], pos[2] - out_pose[2]);
+      LOGD("%f", glm::length(vec));
+
       mArUiRenderer->draw(projection_mat * view_mat * model_mat);
     }
   }
+  ArCamera_release(ar_camera);
 }
 
 void Engine::onTouch(float x, float y) {
@@ -208,6 +226,15 @@ void Engine::getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *
   ArAnchor_getPose(mArSession, &ar_anchor, pose);
   ArPose_getMatrix(mArSession, pose, glm::value_ptr(*out_model_mat));
 
+  ArPose_destroy(pose);
+}
+
+void Engine::getCameraPosition(const ArCamera &ar_camera, float *out_pose) {
+  ArPose *pose;
+  ArPose_create(mArSession, nullptr, &pose);
+  ArCamera_getPose(mArSession, &ar_camera, pose);
+
+  ArPose_getPoseRaw(mArSession, pose, out_pose);
   ArPose_destroy(pose);
 }
 
@@ -290,6 +317,8 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
 
   const ArStatus status = ArSession_resume(mArSession);
   CHECKANDTHROW(status == AR_SUCCESS, env, "Failed to resume AR session.")
+
+  mPlaneRenderer->resume(mArSession);
 }
 
 void Engine::pause() {

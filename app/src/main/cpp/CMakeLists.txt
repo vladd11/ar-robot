@@ -21,15 +21,17 @@ add_library(
         # Provides a relative path to your source file(s).
         mongoose.c
         server.cpp
+        plane_renderer.cpp
         helper.cpp
         engine.cpp
         background_renderer.cpp
         ar_ui_renderer.cpp
         round_radians.cpp
-        glError.cpp
+        gl_util.cpp
 
         verts/plane.cpp
         verts/triangle.cpp
+        shaders/plane.cpp
         shaders/background.cpp
         shaders/loader.cpp
         shaders/default.cpp

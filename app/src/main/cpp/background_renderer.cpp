@@ -48,5 +48,5 @@ void BackgroundRenderer::draw(float *mTransformedUVs) const {
 
   glUseProgram(0);
   glDepthMask(GL_TRUE);
-  CheckGlError("BackgroundRenderer::Draw() error");
+  checkGlError("BackgroundRenderer::draw() error");
 }

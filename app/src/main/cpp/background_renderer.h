@@ -10,7 +10,7 @@
 #include <GLES2/gl2ext.h>
 #include "verts/plane.h"
 #include "shaders/background.h"
-#include "glError.h"
+#include "gl_util.h"
 
 #define COORDS_PER_VERTEX 3
 #define VERTEX_STRIDE COORDS_PER_VERTEX * sizeof(GLfloat)

@@ -40,6 +40,6 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
   );
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  CheckGlError("Triangle draw failed");
+  checkGlError("Triangle draw failed");
   glUseProgram(0);
 }
