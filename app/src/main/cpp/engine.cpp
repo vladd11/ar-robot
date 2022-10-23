@@ -18,7 +18,7 @@
     return;                                                                \
   }
 
-Engine::Engine(std::string storagePath, JNIEnv* env) {
+Engine::Engine(std::string storagePath, JNIEnv *env) {
   mLuaState = luaL_newstate();
   mStoragePath = std::move(storagePath);
   mServerThread = new ServerThread(&mInterrupt);
@@ -44,6 +44,7 @@ void Engine::init() {
   thr.detach();
 
   lua_register(mLuaState, "distanceToAnchor", distanceToAnchor);
+  lua_register(mLuaState, "log", log);
   luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str());
 
   lua_getglobal(mLuaState, "global");
@@ -56,7 +57,14 @@ void Engine::init() {
 }
 
 int Engine::distanceToAnchor(lua_State *L) {
-  LOGD("test");
+  lua_pushnumber(L, 15.0);
+  return 1;
+}
+
+int Engine::log(lua_State *L) {
+  size_t size;
+  auto str = luaL_checklstring(L, 1, &size);
+  __android_log_print(ANDROID_LOG_DEBUG, "Lua", "%s", std::string(str, size).c_str());
   return 0;
 }
 
@@ -158,7 +166,11 @@ void Engine::drawFrame() {
   plane_list = nullptr;
 
   glm::mat4 model_mat(1.0f);
-  float out_pose[7];
+
+  size_t count = mAnchors.size();
+  float positions[count * 3];
+
+  int i = 0;
   for (auto &uiAnchor: mAnchors) {
     ArTrackingState tracking_state = AR_TRACKING_STATE_STOPPED;
     ArAnchor_getTrackingState(mArSession, uiAnchor->anchor,
@@ -166,14 +178,18 @@ void Engine::drawFrame() {
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
       getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
 
-      getCameraPosition(*ar_camera, out_pose);
+      auto mvp = projection_mat * view_mat * model_mat;
+      glm::vec4 vec = mvp[3];
+      positions[i] = vec.x;
+      positions[i + 1] = vec.y;
+      positions[i + 2] = vec.z;
 
-      auto pos = model_mat[2];
-      glm::vec3 vec(pos[0] - out_pose[0], pos[1] - out_pose[1], pos[2] - out_pose[2]);
-      LOGD("%f", glm::length(vec));
-
-      mArUiRenderer->draw(projection_mat * view_mat * model_mat);
+      mArUiRenderer->draw(mvp);
+      i += 3;
     }
+  }
+  if (i) {
+    mArUiRenderer->drawLine(positions, (int) count);
   }
   ArCamera_release(ar_camera);
 }

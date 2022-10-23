@@ -31,6 +31,7 @@ add_library(
 
         verts/plane.cpp
         verts/triangle.cpp
+        shaders/raw.cpp
         shaders/plane.cpp
         shaders/background.cpp
         shaders/loader.cpp

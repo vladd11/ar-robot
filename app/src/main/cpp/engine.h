@@ -75,6 +75,8 @@ public:
   void getCameraPosition(const ArCamera &ar_camera, float *out_pose);
 
   static int distanceToAnchor(lua_State *L);
+
+  static int log(lua_State *L);
 };
 
 #endif //AR_SHOP_ENGINE_H
