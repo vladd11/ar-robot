@@ -49,13 +49,13 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
 void ArUiRenderer::drawLine(float *points, GLsizei count) const {
   glUseProgram(mRawProgram);
 
-  glLineWidth(1000.0f);
+  glLineWidth(1023.0f);
   GLint vColorLocation = glGetUniformLocation(mRawProgram, "vColor");
   glUniform4fv(vColorLocation, 1, Triangle::kColors);
 
-  glVertexAttribPointer(DefaultShader::vPositionAttrIndex, 3, GL_FLOAT, GL_FALSE, VERTEX_STRIDE,
-                        &points);
-  glEnableVertexAttribArray(DefaultShader::vPositionAttrIndex);
+  glVertexAttribPointer(RawShader::vPositionAttrIndex, 3, GL_FLOAT, GL_FALSE, VERTEX_STRIDE,
+                        &points[0]);
+  glEnableVertexAttribArray(RawShader::vPositionAttrIndex);
 
   glDrawArrays(GL_LINES, 0, count);
   checkGlError("drawLine failed");

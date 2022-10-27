@@ -178,8 +178,8 @@ void Engine::drawFrame() {
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
       getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
 
-      auto mvp = projection_mat * view_mat * model_mat;
-      glm::vec4 vec = mvp[3];
+      glm::mat4 mvp = projection_mat * view_mat * model_mat;
+      glm::vec4 vec = mvp[3O];
       positions[i] = vec.x;
       positions[i + 1] = vec.y;
       positions[i + 2] = vec.z;
@@ -191,6 +191,7 @@ void Engine::drawFrame() {
   if (i) {
     mArUiRenderer->drawLine(positions, (int) count);
   }
+  LOGD("\n");
   ArCamera_release(ar_camera);
 }
 
@@ -206,7 +207,7 @@ void Engine::onTouch(float x, float y) {
       float rawMatrix[16];
       ArCamera_getViewMatrix(mArSession, arCamera, rawMatrix);
       glm::mat4 matrix = glm::make_mat4(rawMatrix);
-      glm::vec4 newPosition = glm::vec4(1.f, 1.f, -5.f, 0.f) * matrix;
+      glm::vec4 newPosition = glm::vec4(0.f, 0.f, -1.f, 1.f) * matrix;
 
       float newRawPose[7] = {
           0.f,
