@@ -13,10 +13,15 @@
 #include "glm.h"
 #include "arcore_c_api.h"
 
-void checkGlError(const char* operation);
+void checkGlError(const char *operation);
 
 glm::vec3 getPlaneNormal(const ArSession *ar_session,
-                         const ArPose& plane_pose);
+                         const ArPose &plane_pose);
+
+float calculateDistanceToPlane(const ArSession *arSession,
+                               const ArPose &planePose,
+                               const ArPose &cameraPose);
 
 bool loadPngToGl(JNIEnv *env);
+
 #endif //AR_SHOP_GL_UTIL_H

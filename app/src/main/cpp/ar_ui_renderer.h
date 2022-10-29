@@ -14,9 +14,11 @@
 class ArUiRenderer {
 private:
   GLuint mDefaultProgram{}, mElementBuffer{}, mRawProgram{};
+  GLfloat mMaxLineWidth{};
 
 public:
   ArUiRenderer();
+  ~ArUiRenderer();
 
   void init();
 

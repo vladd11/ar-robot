@@ -45,22 +45,20 @@ void main() {
 )";
 
   GLuint compile() {
-    bool success = true;
-
     GLuint vertexShader, fragmentShader;
     GLuint program = glCreateProgram();
 
-    success = success & CompileShader(&vertexShader, GL_VERTEX_SHADER, vertexShaderCode);
-    success = success & CompileShader(&fragmentShader, GL_FRAGMENT_SHADER, fragmentShaderCode);
+    CompileShader(&vertexShader, GL_VERTEX_SHADER, vertexShaderCode);
+    CompileShader(&fragmentShader, GL_FRAGMENT_SHADER, fragmentShaderCode);
 
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
 
-    success = success & LinkProgram(program);
+    LinkProgram(program);
 
-    if(!success) {
-      LOGE("Can't compile shader program on %s:%i", __FILE__, __LINE__);
-    }
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
     return program;
   }
 }

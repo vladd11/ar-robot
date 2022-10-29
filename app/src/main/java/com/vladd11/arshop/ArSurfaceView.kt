@@ -12,10 +12,9 @@ import android.view.MotionEvent
 @SuppressLint("ClickableViewAccessibility")
 class ArSurfaceView(context: Context, attrs: AttributeSet) : GLSurfaceView(context, attrs) {
     val nativeEngine = NativeEngine(context)
-    private val gestureDetector: GestureDetector
 
     init {
-        gestureDetector = GestureDetector(
+        val gestureDetector = GestureDetector(
             context,
             object : SimpleOnGestureListener() {
                 override fun onSingleTapUp(e: MotionEvent): Boolean {

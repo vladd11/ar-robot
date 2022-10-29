@@ -1,5 +1,34 @@
 #include "engine.h"
 
+extern "C" {
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+}
+
+#include "mongoose.h"
+
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <android/log.h>
+#include <android/asset_manager.h>
+#include <jni.h>
+#include <array>
+#include <thread>
+
+#include "gl_util.h"
+#include "shaders/default.h"
+#include "verts/triangle.h"
+#include "background_renderer.h"
+#include "plane_renderer.h"
+#include "yuv2rgb.h"
+#include "ar_ui_renderer.h"
+#include "verts/triangle.h"
+#include "glm.h"
+#include "server.h"
+
+#include "bindings.h"
+
 #define TAG "Engine"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
@@ -21,14 +50,23 @@
 Engine::Engine(std::string storagePath, JNIEnv *env) {
   mLuaState = luaL_newstate();
   mStoragePath = std::move(storagePath);
-  mServerThread = new ServerThread(&mInterrupt);
+  mServerThread = new ServerThread();
   mBackgroundRenderer = new BackgroundRenderer();
   mPlaneRenderer = new PlaneRenderer(env);
   mArUiRenderer = new ArUiRenderer();
+
+  luaL_openlibs(mLuaState);
+
+  lua_pushlightuserdata(mLuaState, nullptr);
+  lua_pushlightuserdata(mLuaState, this);
+  lua_settable(mLuaState, LUA_REGISTRYINDEX);
+
+  lua_register(mLuaState, "angleToAnchor", angleToAnchor);
+  lua_register(mLuaState, "print", log);
 }
 
 Engine::~Engine() {
-  mInterrupt = true;
+  mServerThread->mInterrupt = true;
   lua_close(mLuaState);
   if (mArSession != nullptr) {
     ArSession_destroy(mArSession);
@@ -43,28 +81,22 @@ void Engine::init() {
   }};
   thr.detach();
 
-  lua_register(mLuaState, "distanceToAnchor", distanceToAnchor);
-  lua_register(mLuaState, "log", log);
   luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str());
-
-  lua_getglobal(mLuaState, "global");
-  int test = 0;
-  LOGD("%lld", lua_tointegerx(mLuaState, -1, &test));
 
   mPlaneRenderer->init();
   mBackgroundRenderer->init();
   mArUiRenderer->init();
 }
 
-int Engine::distanceToAnchor(lua_State *L) {
-  lua_pushnumber(L, 15.0);
-  return 1;
-}
-
 int Engine::log(lua_State *L) {
-  size_t size;
-  auto str = luaL_checklstring(L, 1, &size);
-  __android_log_print(ANDROID_LOG_DEBUG, "Lua", "%s", std::string(str, size).c_str());
+  int n = lua_gettop(L);  /* number of arguments */
+  int i;
+  for (i = 1; i <= n; i++) {  /* for each argument */
+    size_t l;
+    const char *s = luaL_tolstring(L, i, &l);  /* convert it to string */
+    __android_log_print(ANDROID_LOG_DEBUG, "Lua", "%s", std::string(s, l).c_str());
+    lua_pop(L, 1);  /* pop result */
+  }
   return 0;
 }
 
@@ -179,10 +211,10 @@ void Engine::drawFrame() {
       getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
 
       glm::mat4 mvp = projection_mat * view_mat * model_mat;
-      glm::vec4 vec = mvp[3O];
-      positions[i] = vec.x;
-      positions[i + 1] = vec.y;
-      positions[i + 2] = vec.z;
+      glm::vec4 vec = mvp[3];
+      positions[i] = vec.x / vec.w;
+      positions[i + 1] = vec.y / vec.w;
+      positions[i + 2] = vec.z / vec.w;
 
       mArUiRenderer->draw(mvp);
       i += 3;
@@ -191,48 +223,98 @@ void Engine::drawFrame() {
   if (i) {
     mArUiRenderer->drawLine(positions, (int) count);
   }
-  LOGD("\n");
   ArCamera_release(ar_camera);
 }
 
 void Engine::onTouch(float x, float y) {
   if (mArFrame != nullptr && mArSession != nullptr) {
-    ArCamera *arCamera;
-    ArFrame_acquireCamera(mArSession, mArFrame, &arCamera);
+    ArHitResultList *list;
+    ArHitResultList_create(mArSession, &list);
+    CHECK(list)
 
-    ArTrackingState tracking_state = AR_TRACKING_STATE_STOPPED; // Default value
-    ArCamera_getTrackingState(mArSession, arCamera,
-                              &tracking_state);
-    if (tracking_state == AR_TRACKING_STATE_TRACKING) {
-      float rawMatrix[16];
-      ArCamera_getViewMatrix(mArSession, arCamera, rawMatrix);
-      glm::mat4 matrix = glm::make_mat4(rawMatrix);
-      glm::vec4 newPosition = glm::vec4(0.f, 0.f, -1.f, 1.f) * matrix;
+    ArFrame_hitTest(mArSession, mArFrame, x, y, list);
 
-      float newRawPose[7] = {
-          0.f,
-          0.f,
-          0.f,
-          1.f,
-          newPosition[0],
-          newPosition[1],
-          newPosition[2]
-      };
+    int size = 0;
+    ArHitResultList_getSize(mArSession, list, &size);
 
-      ArPose *newPose;
-      ArPose_create(mArSession, newRawPose, &newPose);
+    ArHitResult *finalHit = nullptr;
+    for (int i = 0; i < size; i++) {
+      ArHitResult *hit = nullptr;
+      ArHitResult_create(mArSession, &hit);
+      ArHitResultList_getItem(mArSession, list, i, hit);
 
-      ArAnchor *anchor;
-      ArSession_acquireNewAnchor(mArSession, newPose, &anchor);
+      if (hit == nullptr) {
+        LOGE("Can't get hit on line %i %s", __LINE__, __FILE__);
+        return;
+      }
 
-      ArPose_destroy(newPose);
+      ArTrackable *ar_trackable = nullptr;
+      ArHitResult_acquireTrackable(mArSession, hit, &ar_trackable);
+      ArTrackableType trackableType = AR_TRACKABLE_NOT_VALID;
+      ArTrackable_getType(mArSession, ar_trackable, &trackableType);
+      // Creates an anchor if a plane or an oriented point was hit.
+      if (trackableType == AR_TRACKABLE_PLANE) {
+        ArPose *hitPose = nullptr;
+        ArPose_create(mArSession, nullptr, &hitPose);
+        ArHitResult_getHitPose(mArSession, hit, hitPose);
+        int32_t insidePolygon = 0;
+        ArPlane *plane = ArAsPlane(ar_trackable);
+        ArPlane_isPoseInPolygon(mArSession, plane, hitPose, &insidePolygon);
+
+        // Use hit pose and camera pose to check if hittest is from the
+        // back of the plane, if it is, no need to create the anchor.
+        ArPose *cameraPose = nullptr;
+        ArPose_create(mArSession, nullptr, &cameraPose);
+        ArCamera *ar_camera;
+        ArFrame_acquireCamera(mArSession, mArFrame, &ar_camera);
+        ArCamera_getPose(mArSession, ar_camera, cameraPose);
+        ArCamera_release(ar_camera);
+        float distanceToPlane = calculateDistanceToPlane(
+            mArSession, *hitPose, *cameraPose);
+
+        ArPose_destroy(hitPose);
+        ArPose_destroy(cameraPose);
+
+        if (!insidePolygon || distanceToPlane < 0) {
+          continue;
+        }
+
+        finalHit = hit;
+        break;
+      } else if (trackableType == AR_TRACKABLE_POINT) {
+        ArPoint *arPoint = ArAsPoint(ar_trackable);
+        ArPointOrientationMode mode;
+        ArPoint_getOrientationMode(mArSession, arPoint, &mode);
+        if (AR_POINT_ORIENTATION_ESTIMATED_SURFACE_NORMAL == mode) {
+          finalHit = hit;
+          break;
+        }
+      }
+    }
+
+    if (finalHit) {
+      ArAnchor *anchor = nullptr;
+      if (ArHitResult_acquireNewAnchor(mArSession, finalHit, &anchor) != AR_SUCCESS) {
+        LOGD("Can't acquire new anchor");
+        return;
+      }
+
+      ArTrackingState state = AR_TRACKING_STATE_STOPPED;
+      ArAnchor_getTrackingState(mArSession, anchor, &state);
+      if (state != AR_TRACKING_STATE_TRACKING || mAnchors.size() >= ANCHORS_LIMIT) {
+        ArAnchor_release(anchor);
+        return;
+      }
+
+      ArTrackable *ar_trackable = nullptr;
+      ArHitResult_acquireTrackable(mArSession, finalHit, &ar_trackable);
+      ArHitResult_destroy(finalHit);
 
       auto *uiAnchor = new UiAnchor();
       uiAnchor->anchor = anchor;
       mAnchors.push_back(uiAnchor);
     }
-
-    ArCamera_release(arCamera);
+    ArHitResultList_destroy(list);
   }
 }
 
@@ -353,4 +435,12 @@ void Engine::resize(int rotation, int width, int height) {
   if (mArSession != nullptr) {
     ArSession_setDisplayGeometry(mArSession, rotation, width, height);
   }
+}
+
+std::vector<UiAnchor *> Engine::Anchors() const {
+  return mAnchors;
+}
+
+ArSession* Engine::ArSession() const {
+  return mArSession;
 }

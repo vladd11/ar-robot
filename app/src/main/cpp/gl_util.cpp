@@ -40,19 +40,19 @@ glm::vec3 getPlaneNormal(const ArSession *ar_session,
   return glm::rotate(plane_quaternion, glm::vec3(0., 1.f, 0.));
 }
 
-float calculateDistanceToPlane(const ArSession *ar_session,
-                               const ArPose &plane_pose,
-                               const ArPose &camera_pose) {
-  float plane_pose_raw[7] = {0.f};
-  ArPose_getPoseRaw(ar_session, &plane_pose, plane_pose_raw);
-  glm::vec3 plane_position(plane_pose_raw[4], plane_pose_raw[5],
-                           plane_pose_raw[6]);
-  glm::vec3 normal = getPlaneNormal(ar_session, plane_pose);
+float calculateDistanceToPlane(const ArSession *arSession,
+                               const ArPose &planePose,
+                               const ArPose &cameraPose) {
+  float rawPlanePose[7];
+  ArPose_getPoseRaw(arSession, &planePose, rawPlanePose);
+  glm::vec3 plane_position(rawPlanePose[4], rawPlanePose[5],
+                           rawPlanePose[6]);
+  glm::vec3 normal = getPlaneNormal(arSession, planePose);
 
-  float camera_pose_raw[7] = {0.f};
-  ArPose_getPoseRaw(ar_session, &camera_pose, camera_pose_raw);
-  glm::vec3 camera_P_plane(camera_pose_raw[4] - plane_position.x,
-                           camera_pose_raw[5] - plane_position.y,
-                           camera_pose_raw[6] - plane_position.z);
+  float rawCameraPose[7];
+  ArPose_getPoseRaw(arSession, &cameraPose, rawCameraPose);
+  glm::vec3 camera_P_plane(rawCameraPose[4] - plane_position.x,
+                           rawCameraPose[5] - plane_position.y,
+                           rawCameraPose[6] - plane_position.z);
   return glm::dot(normal, camera_P_plane);
 }

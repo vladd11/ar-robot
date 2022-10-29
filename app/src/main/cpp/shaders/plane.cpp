@@ -60,6 +60,9 @@ void main() {
 
     LinkProgram(program);
 
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
     return program;
   }
 }

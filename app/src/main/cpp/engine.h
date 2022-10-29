@@ -1,41 +1,25 @@
 #ifndef AR_SHOP_ENGINE_H
 #define AR_SHOP_ENGINE_H
 
+#include "arcore_c_api.h"
+#include "background_renderer.h"
+#include "ar_ui_renderer.h"
+#include "plane_renderer.h"
+#include "server.h"
+#include <cstdlib>
+#include <string>
+#include <vector>
+
 extern "C" {
-#include "../../../build/lua/lua-5.4.4/lua.h"
-#include "../../../build/lua/lua-5.4.4/lauxlib.h"
-#include "../../../build/lua/lua-5.4.4/lualib.h"
+#include "lua.h"
 }
 
-#include "mongoose.h"
-
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <android/log.h>
-#include <android/asset_manager.h>
-#include <jni.h>
-#include <stdlib.h>
-#include <fstream>
-#include <array>
-#include <thread>
-
-#include "arcore_c_api.h"
-
-#include "shaders/default.h"
-#include "verts/triangle.h"
-#include "background_renderer.h"
-#include "plane_renderer.h"
-#include "yuv2rgb.h"
-#include "ar_ui_renderer.h"
-#include "verts/triangle.h"
-#include "glm.h"
-#include "server.h"
+struct UiAnchor {
+  ArAnchor *anchor;
+};
 
 class Engine {
 private:
-  struct UiAnchor {
-    ArAnchor *anchor;
-  };
   std::string mStoragePath;
   std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
@@ -46,12 +30,16 @@ private:
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
 
   ServerThread *mServerThread;
-  bool mInterrupt = false;
 
   bool IsUvMapsInitialized{};
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
+  std::vector<UiAnchor *> Anchors() const;
+
+  ArSession* ArSession() const;
+
+  static const int ANCHORS_LIMIT = 10;
   lua_State *mLuaState;
 
   Engine(std::string storagePath, JNIEnv *env);
@@ -73,8 +61,6 @@ public:
   void getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 
   void getCameraPosition(const ArCamera &ar_camera, float *out_pose);
-
-  static int distanceToAnchor(lua_State *L);
 
   static int log(lua_State *L);
 };

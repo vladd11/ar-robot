@@ -28,6 +28,7 @@ add_library(
         ar_ui_renderer.cpp
         round_radians.cpp
         gl_util.cpp
+        bindings.cpp
 
         verts/plane.cpp
         verts/triangle.cpp
@@ -59,6 +60,8 @@ add_subdirectory(
         ${LUA_INCLUDE}
         ${LUA_BUILDDIR}
 )
+
+target_include_directories(arshop PUBLIC ${LUA_INCLUDE}/lua-5.4.4)
 
 target_link_libraries(
         arshop

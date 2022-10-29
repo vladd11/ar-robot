@@ -29,6 +29,10 @@ void main() {
     glBindAttribLocation(program, vPositionAttrIndex, "vPosition");
 
     LinkProgram(program);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
     checkGlError("RawShader::compile");
     return program;
   }

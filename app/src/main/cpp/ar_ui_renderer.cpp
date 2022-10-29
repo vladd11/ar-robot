@@ -5,6 +5,7 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
 ArUiRenderer::ArUiRenderer() = default;
+ArUiRenderer::~ArUiRenderer() = default;
 
 void ArUiRenderer::init() {
   mDefaultProgram = DefaultShader::compile();
@@ -12,7 +13,8 @@ void ArUiRenderer::init() {
 
   GLfloat lineWidthRange[2] = {0.0f, 0.0f};
   glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, lineWidthRange);
-  LOGD("%f", lineWidthRange[1]);
+  LOGD("Maximum like width for this GPU: %f", lineWidthRange[1]);
+  mMaxLineWidth = lineWidthRange[1] - 1.0f;
 
   glGenBuffers(1, &mElementBuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mElementBuffer);
@@ -49,15 +51,15 @@ void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
 void ArUiRenderer::drawLine(float *points, GLsizei count) const {
   glUseProgram(mRawProgram);
 
-  glLineWidth(1023.0f);
+  glLineWidth(mMaxLineWidth);
   GLint vColorLocation = glGetUniformLocation(mRawProgram, "vColor");
   glUniform4fv(vColorLocation, 1, Triangle::kColors);
 
   glVertexAttribPointer(RawShader::vPositionAttrIndex, 3, GL_FLOAT, GL_FALSE, VERTEX_STRIDE,
-                        &points[0]);
+                        points);
   glEnableVertexAttribArray(RawShader::vPositionAttrIndex);
 
-  glDrawArrays(GL_LINES, 0, count);
+  glDrawArrays(GL_LINE_STRIP, 0, count);
   checkGlError("drawLine failed");
   glUseProgram(0);
 }

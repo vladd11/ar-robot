@@ -113,12 +113,6 @@ task unzipLua(type: Copy) {
     into "${buildDir}/lua"
 }
 
-task copyLuaCMakeBuild(type: Copy) {
-    mkdir("${buildDir}/lua/")
-    from "${projectDir}/lua/CMakeLists.txt", "${projectDir}/lua/LuaConfig.cmake.in"
-    into "${buildDir}/lua/"
-}
-
 task downloadLibs(type: Download) {
     mkdir "${buildDir}/lua"
     src([
@@ -131,7 +125,6 @@ task downloadLibs(type: Download) {
     doLast() {
         unzipGLM
         unzipLua
-        copyLuaCMakeBuild
     }
 }
 

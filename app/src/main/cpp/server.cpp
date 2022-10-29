@@ -4,6 +4,12 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+ServerThread::ServerThread() {
+  mCodeStr = new std::string();
+}
+
+ServerThread::~ServerThread() = default;
+
 void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
   if (ev == MG_EV_OPEN) {
     // c->is_hexdumping = 1;
@@ -29,7 +35,7 @@ void ServerThread::operator()() {
   mg_http_listen(&mgr, s_listen_on, fn, this);
 
   LOGD("Listening port 8000 for any commands");
-  while (!*mInterrupt) {
+  while (!mInterrupt) {
     mg_mgr_poll(&mgr, 1000);
   }
 
