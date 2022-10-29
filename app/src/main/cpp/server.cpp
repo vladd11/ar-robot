@@ -18,6 +18,9 @@ void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
     // Upgrade to websocket. From now on, a connection is a full-duplex
     // Websocket connection, which will receive MG_EV_WS_MSG events.
     mg_ws_upgrade(c, hm, nullptr);
+  } else if (ev == MG_EV_WS_OPEN) {
+    auto self = reinterpret_cast<ServerThread *>(fn_data);
+    self->mConnections.push_back(c);
   } else if (ev == MG_EV_WS_MSG) {
     // Got websocket frame. Received data is wm->data. Echo it back!
     auto *wm = (struct mg_ws_message *) ev_data;
@@ -36,7 +39,14 @@ void ServerThread::operator()() {
 
   LOGD("Listening port 8000 for any commands");
   while (!mInterrupt) {
-    mg_mgr_poll(&mgr, 1000);
+    mg_mgr_poll(&mgr, 100);
+
+    Message *msg = out.dequeue();
+    if (msg != nullptr) {
+      for (mg_connection *connection: mConnections) {
+        mg_ws_send(connection, msg->buf, msg->len, WEBSOCKET_OP_TEXT);
+      }
+    }
   }
 
   LOGD("Stopping Websockets server");

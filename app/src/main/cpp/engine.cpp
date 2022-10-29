@@ -50,18 +50,18 @@ extern "C" {
 Engine::Engine(std::string storagePath, JNIEnv *env) {
   mLuaState = luaL_newstate();
   mStoragePath = std::move(storagePath);
-  mServerThread = new ServerThread();
+  mServerThread = new class ServerThread();
   mBackgroundRenderer = new BackgroundRenderer();
   mPlaneRenderer = new PlaneRenderer(env);
   mArUiRenderer = new ArUiRenderer();
 
   luaL_openlibs(mLuaState);
 
-  lua_pushlightuserdata(mLuaState, nullptr);
-  lua_pushlightuserdata(mLuaState, this);
-  lua_settable(mLuaState, LUA_REGISTRYINDEX);
+  pushStruct(mLuaState, this, (void *) ENGINE_KEY);
 
   lua_register(mLuaState, "angleToAnchor", angleToAnchor);
+  lua_register(mLuaState, "sendWebsocketCommand", sendWebsocketCommand);
+  lua_register(mLuaState, "cameraAngle", cameraAngle);
   lua_register(mLuaState, "print", log);
 }
 
@@ -88,25 +88,7 @@ void Engine::init() {
   mArUiRenderer->init();
 }
 
-int Engine::log(lua_State *L) {
-  int n = lua_gettop(L);  /* number of arguments */
-  int i;
-  for (i = 1; i <= n; i++) {  /* for each argument */
-    size_t l;
-    const char *s = luaL_tolstring(L, i, &l);  /* convert it to string */
-    __android_log_print(ANDROID_LOG_DEBUG, "Lua", "%s", std::string(s, l).c_str());
-    lua_pop(L, 1);  /* pop result */
-  }
-  return 0;
-}
-
 void Engine::drawFrame() {
-  if (mServerThread->mUpdateCode) {
-    LOGD("Loaded new code from peer");
-    luaL_dostring(mLuaState, mServerThread->mCodeStr->c_str());
-    mServerThread->mUpdateCode = false;
-  }
-
   // Render the scene.
   glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -223,7 +205,19 @@ void Engine::drawFrame() {
   if (i) {
     mArUiRenderer->drawLine(positions, (int) count);
   }
+
   ArCamera_release(ar_camera);
+
+  if (mServerThread->mUpdateCode) {
+    LOGD("Loaded new code from peer");
+    if (luaL_dostring(mLuaState, mServerThread->mCodeStr->c_str()) != LUA_OK) {
+      size_t size = 0;
+      const char *str = lua_tolstring(mLuaState, -1, &size);
+      __android_log_print(ANDROID_LOG_ERROR, "Lua", "%s", std::string(str, size).c_str());
+      mServerThread->out.enqueue(new Message{str, size});
+    }
+    mServerThread->mUpdateCode = false;
+  }
 }
 
 void Engine::onTouch(float x, float y) {
@@ -325,15 +319,6 @@ void Engine::getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *
   ArAnchor_getPose(mArSession, &ar_anchor, pose);
   ArPose_getMatrix(mArSession, pose, glm::value_ptr(*out_model_mat));
 
-  ArPose_destroy(pose);
-}
-
-void Engine::getCameraPosition(const ArCamera &ar_camera, float *out_pose) {
-  ArPose *pose;
-  ArPose_create(mArSession, nullptr, &pose);
-  ArCamera_getPose(mArSession, &ar_camera, pose);
-
-  ArPose_getPoseRaw(mArSession, pose, out_pose);
   ArPose_destroy(pose);
 }
 
@@ -441,6 +426,14 @@ std::vector<UiAnchor *> Engine::Anchors() const {
   return mAnchors;
 }
 
-ArSession* Engine::ArSession() const {
+ArSession *Engine::ArSession() const {
   return mArSession;
+}
+
+ArFrame *Engine::ArFrame() const {
+  return mArFrame;
+}
+
+ServerThread *Engine::ServerThread() const {
+  return mServerThread;
 }

@@ -18,6 +18,8 @@ struct UiAnchor {
   ArAnchor *anchor;
 };
 
+static void* ENGINE_KEY = nullptr;
+
 class Engine {
 private:
   std::string mStoragePath;
@@ -37,7 +39,11 @@ private:
 public:
   std::vector<UiAnchor *> Anchors() const;
 
-  ArSession* ArSession() const;
+  ArSession *ArSession() const;
+
+  ArFrame *ArFrame() const;
+
+  ServerThread *ServerThread() const;
 
   static const int ANCHORS_LIMIT = 10;
   lua_State *mLuaState;
@@ -61,8 +67,6 @@ public:
   void getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat);
 
   void getCameraPosition(const ArCamera &ar_camera, float *out_pose);
-
-  static int log(lua_State *L);
 };
 
 #endif //AR_SHOP_ENGINE_H

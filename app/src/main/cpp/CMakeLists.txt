@@ -30,6 +30,7 @@ add_library(
         gl_util.cpp
         bindings.cpp
 
+        safe_queue.cpp
         verts/plane.cpp
         verts/triangle.cpp
         shaders/raw.cpp
