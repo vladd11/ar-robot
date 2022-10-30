@@ -2,6 +2,7 @@ package com.vladd11.arshop
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -25,6 +26,16 @@ class MainActivity : AppCompatActivity() {
         navController = navHostFragment.navController.also {
             it.navigate(R.id.dummyFragment)
         }
+
+        requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 0)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     override fun onResume() {

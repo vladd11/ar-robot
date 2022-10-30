@@ -39,7 +39,7 @@ void ServerThread::operator()() {
 
   LOGD("Listening port 8000 for any commands");
   while (!mInterrupt) {
-    mg_mgr_poll(&mgr, 100);
+    mg_mgr_poll(&mgr, 200);
 
     Message *msg = out.dequeue();
     if (msg != nullptr) {

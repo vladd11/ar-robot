@@ -18,9 +18,11 @@ int cameraAngle(lua_State *L);
 /**
  * Broadcasts message to all connected clients.
  */
-int sendWebsocketCommand(lua_State *L);
+int send(lua_State *L);
 
 int log(lua_State *L);
+
+int angleDistance(lua_State *L);
 
 template<class T>
 T getStruct(lua_State *L, void *key) {

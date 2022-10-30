@@ -13,7 +13,7 @@ void ArUiRenderer::init() {
 
   GLfloat lineWidthRange[2] = {0.0f, 0.0f};
   glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, lineWidthRange);
-  LOGD("Maximum like width for this GPU: %f", lineWidthRange[1]);
+  LOGD("Maximum line width for this GPU: %f", lineWidthRange[1]);
   mMaxLineWidth = lineWidthRange[1] - 1.0f;
 
   glGenBuffers(1, &mElementBuffer);

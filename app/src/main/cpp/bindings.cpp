@@ -29,18 +29,24 @@ int angleToAnchor(lua_State *L) {
 
   ArAnchor *anchor = self->Anchors()[index]->anchor;
 
-  ArPose *pose;
-  ArPose_create(self->ArSession(), nullptr, &pose);
-  ArAnchor_getPose(self->ArSession(), anchor, pose);
+  ArTrackingState state;
+  ArAnchor_getTrackingState(self->ArSession(), anchor, &state);
+  if (state == AR_TRACKING_STATE_TRACKING) {
+    ArPose *pose;
+    ArPose_create(self->ArSession(), nullptr, &pose);
+    ArAnchor_getPose(self->ArSession(), anchor, pose);
 
-  glm::vec3 rot = getPoseRotation(self->ArSession(), pose);
+    glm::vec3 rot = getPoseRotation(self->ArSession(), pose);
 
-  ArPose_destroy(pose);
+    ArPose_destroy(pose);
 
-  lua_pushnumber(L, rot.x);
-  lua_pushnumber(L, rot.y);
-  lua_pushnumber(L, rot.z);
-  return 3;
+    lua_pushnumber(L, rot.x);
+    lua_pushnumber(L, rot.y);
+    lua_pushnumber(L, rot.z);
+    return 3;
+  }
+  lua_pushnil(L);
+  return 1;
 }
 
 int cameraAngle(lua_State *L) {
@@ -74,7 +80,7 @@ int cameraAngle(lua_State *L) {
   return code;
 }
 
-int sendWebsocketCommand(lua_State *L) {
+int send(lua_State *L) {
   size_t len;
   const char *str = luaL_checklstring(L, 1, &len);
 

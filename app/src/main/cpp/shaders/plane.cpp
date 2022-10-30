@@ -3,6 +3,7 @@
 namespace PlaneShader {
   // Shader code copy-pasted from ARCore samples
   static const char *vertexShaderCode = R"(
+#version 100
 precision highp float;
 precision highp int;
 attribute vec3 vertex;
@@ -35,6 +36,7 @@ void main() {
 )";
 
   static const char *fragmentShaderCode = R"(
+#version 100
 precision highp float;
 precision highp int;
 uniform sampler2D texture;

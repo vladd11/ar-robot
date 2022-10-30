@@ -2,6 +2,7 @@
 
 namespace DefaultShader {
   static const char *vertexShaderCode = R"(
+#version 100
 attribute vec4 vPosition;
 uniform mat4 mvp;
 void main()
@@ -11,6 +12,7 @@ void main()
 )";
 
   static const char *fragmentShaderCode = R"(
+#version 100
 precision mediump float;
 uniform vec4 vColor;
 void main() {

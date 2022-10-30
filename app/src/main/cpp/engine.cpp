@@ -60,7 +60,7 @@ Engine::Engine(std::string storagePath, JNIEnv *env) {
   pushStruct(mLuaState, this, (void *) ENGINE_KEY);
 
   lua_register(mLuaState, "angleToAnchor", angleToAnchor);
-  lua_register(mLuaState, "sendWebsocketCommand", sendWebsocketCommand);
+  lua_register(mLuaState, "send", send);
   lua_register(mLuaState, "cameraAngle", cameraAngle);
   lua_register(mLuaState, "print", log);
 }
@@ -81,7 +81,11 @@ void Engine::init() {
   }};
   thr.detach();
 
-  luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str());
+  if(luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str()) != LUA_OK) {
+    size_t size = 0;
+    const char *str = lua_tolstring(mLuaState, -1, &size);
+    LOGE("%s", std::string(str, size).c_str());
+  }
 
   mPlaneRenderer->init();
   mBackgroundRenderer->init();
@@ -218,6 +222,8 @@ void Engine::drawFrame() {
     }
     mServerThread->mUpdateCode = false;
   }
+  lua_getglobal(mLuaState, "tick");
+  lua_pcall(mLuaState, 0, 0, 0);
 }
 
 void Engine::onTouch(float x, float y) {

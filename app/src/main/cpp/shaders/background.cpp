@@ -21,6 +21,7 @@ namespace BackgroundShader {
    * limitations under the License.
    */
   static const char *vertexShaderCode = R"(
+#version 100
 attribute vec4 a_Position;
 attribute vec2 a_TexCoord;
 
@@ -33,6 +34,7 @@ void main() {
 )";
 
   static const char *fragmentShaderCode = R"(
+#version 100
 #extension GL_OES_EGL_image_external : require
 
 precision mediump float;

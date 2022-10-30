@@ -2,14 +2,16 @@
 
 namespace RawShader {
   static const char *vertexShaderCode = R"(
+#version 100
 attribute vec3 vPosition;
 void main()
 {
-  gl_Position = vec4(vPosition, 1.0f);
+  gl_Position = vec4(vPosition, 1.0);
 }
 )";
 
   static const char *fragmentShaderCode = R"(
+#version 100
 precision mediump float;
 uniform vec4 vColor;
 void main() {
