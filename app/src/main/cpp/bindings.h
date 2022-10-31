@@ -22,7 +22,7 @@ int send(lua_State *L);
 
 int log(lua_State *L);
 
-int angleDistance(lua_State *L);
+void registerLibraryPath(lua_State *L, std::string path);
 
 template<class T>
 T getStruct(lua_State *L, void *key) {

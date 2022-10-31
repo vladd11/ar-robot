@@ -4,6 +4,7 @@ extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "luasocket.h"
 }
 
 #include "mongoose.h"
@@ -26,7 +27,6 @@ extern "C" {
 #include "verts/triangle.h"
 #include "glm.h"
 #include "server.h"
-
 #include "bindings.h"
 
 #define TAG "Engine"
@@ -58,8 +58,9 @@ Engine::Engine(std::string storagePath, JNIEnv *env) {
   luaL_openlibs(mLuaState);
 
   pushStruct(mLuaState, this, (void *) ENGINE_KEY);
-
+  registerLibraryPath(mLuaState, mStoragePath);
   lua_register(mLuaState, "angleToAnchor", angleToAnchor);
+  lua_register(mLuaState, "requireSockets", luaopen_socket_core);
   lua_register(mLuaState, "send", send);
   lua_register(mLuaState, "cameraAngle", cameraAngle);
   lua_register(mLuaState, "print", log);
@@ -72,6 +73,9 @@ Engine::~Engine() {
     ArSession_destroy(mArSession);
     ArFrame_destroy(mArFrame);
   }
+  delete mBackgroundRenderer;
+  delete mArUiRenderer;
+  delete mBackgroundRenderer;
   delete mServerThread;
 }
 

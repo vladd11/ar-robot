@@ -25,8 +25,8 @@ android {
                         "-DARCORE_LIBPATH=${buildDir}/arcore-native/jni",
                         "-DARCORE_INCLUDE=${project.rootDir}/libraries/include",
                         "-DGLM_INCLUDE=${buildDir}/glm/glm",
-                        "-DLUA_INCLUDE=${buildDir}/lua",
-                        "-DLUA_BUILDDIR=${buildDir}/lua"
+                        "-DLUA_INCLUDE=${buildDir}/luasocket-master",
+                        "-DLUA_BUILDDIR=${buildDir}/luasocket-master"
             }
         }
         ndk {
@@ -72,14 +72,7 @@ dependencies {
 
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'com.google.android.material:material:1.6.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.5.1'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
-
-    implementation "androidx.navigation:navigation-fragment-ktx:2.5.2"
-    implementation "androidx.navigation:navigation-ui-ktx:2.5.2"
+    implementation 'com.google.android.material:material:1.7.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
@@ -103,36 +96,27 @@ task extractNativeLibraries() {
     }
 }
 
-task unzipGLM(type: Copy) {
-    from zipTree("${buildDir}/${GLM_FILE}")
-    into buildDir
-}
-
-task unzipLua(type: Copy) {
-    from zipTree("${buildDir}/${LUA_FILE}")
-    into "${buildDir}/lua"
-}
-
 task downloadLibs(type: Download) {
     mkdir "${buildDir}/lua"
     src([
-            "https://github.com/lua/lua/archive/refs/tags/${LUA_FILE}",
+            "https://github.com/vladd11/luasocket/archive/refs/heads/${LUA_FILE}",
             "https://github.com/g-truc/glm/releases/download/0.9.9.8/${GLM_FILE}"
     ])
     dest buildDir
     overwrite false
+}
 
-    doLast() {
-        unzipGLM
-        unzipLua
-    }
+task unzipLibs(type: Copy, dependsOn: downloadLibs) {
+    from zipTree("${buildDir}/${GLM_FILE}")
+    from zipTree("${buildDir}/${LUA_FILE}")
+    into buildDir
 }
 
 tasks.whenTaskAdded {
     task ->
         {
-            if (!(file("${buildDir}/glm").exists() && file("${buildDir}/lua").exists())) {
-                task.dependsOn(downloadLibs)
+            if (!(file("${buildDir}/glm").exists() && file("${buildDir}/luasocket-master").exists())) {
+                task.dependsOn(unzipLibs)
             }
 
             if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {

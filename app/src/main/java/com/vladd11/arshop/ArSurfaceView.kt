@@ -10,7 +10,7 @@ import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 
 @SuppressLint("ClickableViewAccessibility")
-class ArSurfaceView(context: Context, attrs: AttributeSet) : GLSurfaceView(context, attrs) {
+class ArSurfaceView(context: Context) : GLSurfaceView(context) {
     val nativeEngine = NativeEngine(context)
 
     init {

@@ -62,7 +62,7 @@ add_subdirectory(
         ${LUA_BUILDDIR}
 )
 
-target_include_directories(arshop PUBLIC ${LUA_INCLUDE}/lua-5.4.4)
+target_include_directories(arshop PUBLIC ${LUA_INCLUDE}/src)
 
 target_link_libraries(
         arshop

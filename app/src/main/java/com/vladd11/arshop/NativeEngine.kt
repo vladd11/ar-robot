@@ -3,22 +3,34 @@ package com.vladd11.arshop
 import android.app.Activity
 import android.content.Context
 import android.content.res.AssetManager
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 
 class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
-    private val nativeEngine = newNativeEngine(context.getExternalFilesDir("scripts").toString())
+    private val filesDir = context.getExternalFilesDir("scripts")
+    private val nativeEngine = newNativeEngine(filesDir.toString())
 
     init {
         assetManager = context.assets
+        if (!File(filesDir, "socket.lua").exists()) {
+            for (file in assetManager.list("libs")!!) {
+                val outStream = File(filesDir, file).outputStream()
+                val inStream = assetManager.open("libs/${file}")
+                inStream.copyTo(outStream)
+                outStream.close()
+                inStream.close()
+            }
+        }
     }
 
     companion object {
@@ -31,12 +43,14 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
 
         @JvmStatic
         fun loadImage() {
-            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, try {
-                BitmapFactory.decodeStream(assetManager.open("trigrid.png"))
-            } catch (e: IOException) {
-                Log.e(TAG, "Cannot open trigrid.png")
-                null
-            }, 0)
+            GLUtils.texImage2D(
+                GLES20.GL_TEXTURE_2D, 0, try {
+                    BitmapFactory.decodeStream(assetManager.open("trigrid.png"))
+                } catch (e: IOException) {
+                    Log.e(TAG, "Cannot open trigrid.png")
+                    null
+                }, 0
+            )
         }
     }
 

@@ -7,31 +7,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.navigation.NavController
-import androidx.navigation.fragment.NavHostFragment
-import java.util.concurrent.locks.ReentrantLock
 
 class MainActivity : AppCompatActivity() {
     private lateinit var glSurfaceView: ArSurfaceView
-    private lateinit var navController: NavController
 
     companion object {
-        const val REQUEST_CODE = 0;
+        const val REQUEST_CODE = 0
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         hideSystemBars()
 
-        setContentView(R.layout.activity_main)
-
-        glSurfaceView = findViewById(R.id.surfaceView)
-
-        val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        navController = navHostFragment.navController.also {
-            it.navigate(R.id.dummyFragment)
-        }
+        glSurfaceView = ArSurfaceView(this)
+        setContentView(glSurfaceView)
     }
 
     override fun onRequestPermissionsResult(
