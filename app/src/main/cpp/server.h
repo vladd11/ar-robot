@@ -18,7 +18,7 @@ struct Message {
 class ServerThread {
 public:
   std::vector<mg_connection *> mConnections;
-  SafeQueue<Message *> out;
+  SafeQueue<std::string *> out;
   std::string *mCodeStr;
   std::atomic<bool> mInterrupt = false;
   std::atomic<bool> mUpdateCode = false;

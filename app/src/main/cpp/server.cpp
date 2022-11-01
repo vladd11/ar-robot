@@ -41,12 +41,13 @@ void ServerThread::operator()() {
   while (!mInterrupt) {
     mg_mgr_poll(&mgr, 200);
 
-    Message *msg = out.dequeue();
+    std::string *msg = out.dequeue();
     if (msg != nullptr) {
       for (mg_connection *connection: mConnections) {
-        mg_ws_send(connection, msg->buf, msg->len, WEBSOCKET_OP_TEXT);
+        mg_ws_send(connection, msg->c_str(), msg->length(), WEBSOCKET_OP_TEXT);
       }
     }
+    delete msg;
   }
 
   LOGD("Stopping Websockets server");

@@ -21,3 +21,6 @@
 #-renamesourcefileattribute SourceFile
 
 -dontwarn com.google.**
+-keep class com.vladd11.arshop.NativeEngine {
+    static void loadImage();
+}

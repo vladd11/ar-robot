@@ -7,13 +7,22 @@ extern "C" {
 #include "lua.h"
 }
 
-int angleToAnchor(lua_State *L);
+inline int tick(lua_State *L) {
+  lua_getglobal(L, "tick");
+  return lua_pcall(L, 0, 0, 0);
+}
+
+int angleBetweenCameraAndAnchor(lua_State *L);
+
+int anchorPose(lua_State *L);
+
+int loadCode(lua_State *L, const std::string &code, std::string **outError);
 
 /**
  * Get Euler rotation of AR camera (in radians).
  * @return nil if camera isn't tracking, else XYZ euler rotation in rads.
  */
-int cameraAngle(lua_State *L);
+int cameraPose(lua_State *L);
 
 /**
  * Broadcasts message to all connected clients.

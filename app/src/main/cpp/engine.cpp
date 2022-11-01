@@ -2,7 +2,6 @@
 
 extern "C" {
 #include "lua.h"
-#include "lauxlib.h"
 #include "lualib.h"
 #include "luasocket.h"
 }
@@ -59,10 +58,11 @@ Engine::Engine(std::string storagePath, JNIEnv *env) {
 
   pushStruct(mLuaState, this, (void *) ENGINE_KEY);
   registerLibraryPath(mLuaState, mStoragePath);
-  lua_register(mLuaState, "angleToAnchor", angleToAnchor);
+  lua_register(mLuaState, "anchorPose", anchorPose);
   lua_register(mLuaState, "requireSockets", luaopen_socket_core);
+  lua_register(mLuaState, "angleBetweenCameraAndAnchor", angleBetweenCameraAndAnchor);
   lua_register(mLuaState, "send", send);
-  lua_register(mLuaState, "cameraAngle", cameraAngle);
+  lua_register(mLuaState, "cameraPose", cameraPose);
   lua_register(mLuaState, "print", log);
 }
 
@@ -85,7 +85,7 @@ void Engine::init() {
   }};
   thr.detach();
 
-  if(luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str()) != LUA_OK) {
+  if (luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str()) != LUA_OK) {
     size_t size = 0;
     const char *str = lua_tolstring(mLuaState, -1, &size);
     LOGE("%s", std::string(str, size).c_str());
@@ -217,17 +217,13 @@ void Engine::drawFrame() {
   ArCamera_release(ar_camera);
 
   if (mServerThread->mUpdateCode) {
-    LOGD("Loaded new code from peer");
-    if (luaL_dostring(mLuaState, mServerThread->mCodeStr->c_str()) != LUA_OK) {
-      size_t size = 0;
-      const char *str = lua_tolstring(mLuaState, -1, &size);
-      __android_log_print(ANDROID_LOG_ERROR, "Lua", "%s", std::string(str, size).c_str());
-      mServerThread->out.enqueue(new Message{str, size});
-    }
+    auto *str = new std::string();
+    if (loadCode(mLuaState, *mServerThread->mCodeStr, &str) != LUA_OK) {
+      mServerThread->out.enqueue(str);
+    } else delete str;
     mServerThread->mUpdateCode = false;
   }
-  lua_getglobal(mLuaState, "tick");
-  lua_pcall(mLuaState, 0, 0, 0);
+  tick(mLuaState);
 }
 
 void Engine::onTouch(float x, float y) {
