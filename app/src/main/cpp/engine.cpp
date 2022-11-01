@@ -60,7 +60,7 @@ Engine::Engine(std::string storagePath, JNIEnv *env) {
   registerLibraryPath(mLuaState, mStoragePath);
   lua_register(mLuaState, "anchorPose", anchorPose);
   lua_register(mLuaState, "requireSockets", luaopen_socket_core);
-  lua_register(mLuaState, "angleBetweenCameraAndAnchor", angleBetweenCameraAndAnchor);
+  lua_register(mLuaState, "angleToAnchor", angleToAnchor);
   lua_register(mLuaState, "send", send);
   lua_register(mLuaState, "cameraPose", cameraPose);
   lua_register(mLuaState, "print", log);

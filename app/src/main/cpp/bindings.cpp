@@ -120,7 +120,7 @@ int send(lua_State *L) {
   return 0;
 }
 
-int angleBetweenCameraAndAnchor(lua_State *L) {
+int angleToAnchor(lua_State *L) {
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
 
   long long index = luaL_checkinteger(L, 1);
@@ -161,7 +161,7 @@ int angleBetweenCameraAndAnchor(lua_State *L) {
       // This is YAW (eq. projection of angle between current rotation and forward vector).
       float cameraAngle = glm::pitch(glm::quat(cameraPoseRaw[3], cameraPoseRaw[0], cameraPoseRaw[1], cameraPoseRaw[2]));
 
-      lua_pushnumber(L, anchorAngle - cameraAngle);
+      lua_pushnumber(L, std::fmod(anchorAngle - cameraAngle, 2 * M_PI));
 
       ArPose_destroy(anchorPose);
       ArPose_destroy(cameraPose);
