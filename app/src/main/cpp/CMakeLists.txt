@@ -26,7 +26,6 @@ add_library(
         engine.cpp
         background_renderer.cpp
         ar_ui_renderer.cpp
-        round_radians.cpp
         gl_util.cpp
         bindings.cpp
 
