@@ -1,5 +1,9 @@
 #include "bindings.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma ide diagnostic ignored "ConstantFunctionResult" // Lua functions may return const value of results
+
 extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
@@ -56,12 +60,20 @@ int loadCode(lua_State *L, const std::string &code, std::string **outError) {
   return error;
 }
 
+inline long long checkAnchorIndex(lua_State *L, Engine *engine) {
+  long long index = luaL_checkinteger(L, 1);
+  if (index >= engine->Anchors().size() || index < 0) {
+    lua_pushnil(L);
+    return -1;
+  }
+  return index;
+}
+
 int anchorPose(lua_State *L) {
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
 
-  long long index = luaL_checkinteger(L, 1);
-  if (index >= self->Anchors().size()) {
-    lua_pushnil(L);
+  long long index = checkAnchorIndex(L, self);
+  if (index == -1) {
     return 1;
   }
 
@@ -77,10 +89,11 @@ int anchorPose(lua_State *L) {
     lua_pushPose(L, self->ArSession(), pose);
 
     ArPose_destroy(pose);
-    return 6;
+  } else {
+    for (int i = 0; i < 6; i++) lua_pushnil(L);
   }
-  lua_pushnil(L);
-  return 1;
+
+  return 6;
 }
 
 int cameraPose(lua_State *L) {
@@ -92,9 +105,8 @@ int cameraPose(lua_State *L) {
   ArTrackingState state;
   ArCamera_getTrackingState(self->ArSession(), camera, &state);
 
-  int code = 1;
   if (state != AR_TRACKING_STATE_TRACKING) {
-    lua_pushnil(L);
+    for (int i = 0; i < 6; i++) lua_pushnil(L);
   } else {
     ArPose *pose;
     ArPose_create(self->ArSession(), nullptr, &pose);
@@ -103,11 +115,33 @@ int cameraPose(lua_State *L) {
     lua_pushPose(L, self->ArSession(), pose);
 
     ArPose_destroy(pose);
-    code = 6;
   }
 
-  ArCamera_release(camera);
-  return code;
+  return 6;
+}
+
+int saveAnchor(lua_State *L) {
+  auto *self = getStruct<Engine *>(L, ENGINE_KEY);
+
+  long long index = checkAnchorIndex(L, self);
+  if (index == -1) {
+    return 1;
+  }
+
+  UiAnchor *uiAnchor = self->Anchors()[index];
+
+  ArTrackingState state;
+  ArCamera_getTrackingState(self->ArSession(), self->getArCamera(), &state);
+
+  if (state == AR_TRACKING_STATE_TRACKING) {
+    ArAnchor *cloudAnchor;
+    if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->ArSession(), uiAnchor->anchor, 365,
+                                                      &cloudAnchor) == AR_SUCCESS) {
+      lua_pushboolean(L, true);
+    } else lua_pushnil(L);
+  } else lua_pushnil(L);
+
+  return 1;
 }
 
 int send(lua_State *L) {
@@ -123,17 +157,13 @@ int send(lua_State *L) {
 int angleToAnchor(lua_State *L) {
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
 
-  long long index = luaL_checkinteger(L, 1);
-  if (index >= self->Anchors().size()) {
-    lua_pushnil(L);
+  long long index = checkAnchorIndex(L, self);
+  if (index == -1) {
     return 1;
   }
 
-  ArCamera *camera;
-  ArFrame_acquireCamera(self->ArSession(), self->ArFrame(), &camera);
-
   ArTrackingState state;
-  ArCamera_getTrackingState(self->ArSession(), camera, &state);
+  ArCamera_getTrackingState(self->ArSession(), self->getArCamera(), &state);
 
   if (state == AR_TRACKING_STATE_TRACKING) {
     ArAnchor *anchor = self->Anchors()[index]->anchor;
@@ -145,21 +175,22 @@ int angleToAnchor(lua_State *L) {
       ArPose_create(self->ArSession(), nullptr, &cameraPose);
 
       ArAnchor_getPose(self->ArSession(), anchor, anchorPose);
-      ArCamera_getPose(self->ArSession(), camera, cameraPose);
+      ArCamera_getPose(self->ArSession(), self->getArCamera(), cameraPose);
 
       float anchorPoseRaw[7], cameraPoseRaw[7];
       ArPose_getPoseRaw(self->ArSession(), anchorPose, anchorPoseRaw);
       ArPose_getPoseRaw(self->ArSession(), cameraPose, cameraPoseRaw);
 
       glm::vec2 anchorVector = glm::vec2(anchorPoseRaw[4], anchorPoseRaw[6]);
-
       // This is projection of angle (between anchor coordinates and (0, 0, -1) camera forward vector)
       // to XZ plane
       // Calculated by [dot product](https://en.wikipedia.org/wiki/Dot_product)
       float anchorAngle = acos(dot(anchorVector, glm::vec2(0, -1)) / glm::length(anchorVector));
+      if(anchorVector.x < 0) anchorAngle = -anchorAngle;
 
       // This is YAW (eq. projection of angle between current rotation and forward vector).
-      float cameraAngle = glm::pitch(glm::quat(cameraPoseRaw[3], cameraPoseRaw[0], cameraPoseRaw[1], cameraPoseRaw[2]));
+      float cameraAngle = glm::pitch(
+          glm::quat(cameraPoseRaw[3], cameraPoseRaw[0], cameraPoseRaw[1], cameraPoseRaw[2]));
 
       lua_pushnumber(L, std::fmod(anchorAngle - cameraAngle, 2 * M_PI));
 
@@ -168,7 +199,6 @@ int angleToAnchor(lua_State *L) {
     } else lua_pushnil(L);
   } else lua_pushnil(L);
 
-  ArCamera_release(camera);
   return 1;
 }
 
@@ -183,3 +213,5 @@ int log(lua_State *L) {
   return 0;
 }
 
+
+#pragma clang diagnostic pop

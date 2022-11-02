@@ -64,6 +64,7 @@ Engine::Engine(std::string storagePath, JNIEnv *env) {
   lua_register(mLuaState, "send", send);
   lua_register(mLuaState, "cameraPose", cameraPose);
   lua_register(mLuaState, "print", log);
+  lua_register(mLuaState, "saveAnchor", saveAnchor);
 }
 
 Engine::~Engine() {
@@ -114,12 +115,11 @@ void Engine::drawFrame() {
     LOGE("OnDrawFrame ArSession_update error");
   }
 
-  ArCamera *ar_camera;
-  ArFrame_acquireCamera(mArSession, mArFrame, &ar_camera);
+  ArFrame_acquireCamera(mArSession, mArFrame, &mArCamera);
 
   ArPose *pose = nullptr;
   ArPose_create(mArSession, nullptr, &pose);
-  ArCamera_getPose(mArSession, ar_camera, pose);
+  ArCamera_getPose(mArSession, mArCamera, pose);
   ArPose_destroy(pose);
 
   // If display rotation changed (also includes view size change), we need to
@@ -136,8 +136,8 @@ void Engine::drawFrame() {
 
   glm::mat4 view_mat;
   glm::mat4 projection_mat;
-  ArCamera_getViewMatrix(mArSession, ar_camera, glm::value_ptr(view_mat));
-  ArCamera_getProjectionMatrix(mArSession, ar_camera, /*near=*/0.1f, /*far=*/100.f,
+  ArCamera_getViewMatrix(mArSession, mArCamera, glm::value_ptr(view_mat));
+  ArCamera_getProjectionMatrix(mArSession, mArCamera, /*near=*/0.1f, /*far=*/100.f,
                                glm::value_ptr(projection_mat));
 
   int64_t frame_timestamp;
@@ -147,7 +147,7 @@ void Engine::drawFrame() {
   }
 
   ArTrackingState camera_tracking_state;
-  ArCamera_getTrackingState(mArSession, ar_camera, &camera_tracking_state);
+  ArCamera_getTrackingState(mArSession, mArCamera, &camera_tracking_state);
 
   ArTrackableList *plane_list = nullptr;
   ArTrackableList_create(mArSession, &plane_list);
@@ -214,8 +214,6 @@ void Engine::drawFrame() {
     mArUiRenderer->drawLine(positions, (int) count);
   }
 
-  ArCamera_release(ar_camera);
-
   if (mServerThread->mUpdateCode) {
     auto *str = new std::string();
     if (loadCode(mLuaState, *mServerThread->mCodeStr, &str) != LUA_OK) {
@@ -224,6 +222,8 @@ void Engine::drawFrame() {
     mServerThread->mUpdateCode = false;
   }
   tick(mLuaState);
+
+  ArCamera_release(mArCamera);
 }
 
 void Engine::onTouch(float x, float y) {
@@ -265,10 +265,11 @@ void Engine::onTouch(float x, float y) {
         // back of the plane, if it is, no need to create the anchor.
         ArPose *cameraPose = nullptr;
         ArPose_create(mArSession, nullptr, &cameraPose);
-        ArCamera *ar_camera;
-        ArFrame_acquireCamera(mArSession, mArFrame, &ar_camera);
-        ArCamera_getPose(mArSession, ar_camera, cameraPose);
-        ArCamera_release(ar_camera);
+
+        ArCamera *arCamera;
+        ArFrame_acquireCamera(mArSession, mArFrame, &arCamera);
+        ArCamera_getPose(mArSession, arCamera, cameraPose);
+        ArCamera_release(arCamera);
         float distanceToPlane = calculateDistanceToPlane(
             mArSession, *hitPose, *cameraPose);
 
@@ -442,4 +443,8 @@ ArFrame *Engine::ArFrame() const {
 
 ServerThread *Engine::ServerThread() const {
   return mServerThread;
+}
+
+ArCamera *Engine::getArCamera() const {
+  return mArCamera;
 }

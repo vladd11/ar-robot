@@ -16,15 +16,17 @@ extern "C" {
 
 struct UiAnchor {
   ArAnchor *anchor;
+  ArAnchor *cloudAnchor;
 };
 
-static void* ENGINE_KEY = nullptr;
+static void *ENGINE_KEY = nullptr;
 
 class Engine {
 private:
   std::string mStoragePath;
   std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
+  ArCamera *mArCamera;
   BackgroundRenderer *mBackgroundRenderer;
   ArUiRenderer *mArUiRenderer;
   PlaneRenderer *mPlaneRenderer;
@@ -40,6 +42,8 @@ public:
   std::vector<UiAnchor *> Anchors() const;
 
   ArSession *ArSession() const;
+
+  ArCamera *getArCamera() const;
 
   ArFrame *ArFrame() const;
 

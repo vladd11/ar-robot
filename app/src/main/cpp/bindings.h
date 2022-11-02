@@ -16,6 +16,8 @@ int angleToAnchor(lua_State *L);
 
 int anchorPose(lua_State *L);
 
+int saveAnchor(lua_State *L);
+
 int loadCode(lua_State *L, const std::string &code, std::string **outError);
 
 /**
