@@ -23,11 +23,11 @@ void ArUiRenderer::init() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp) const {
+void ArUiRenderer::draw(glm::mat<4, 4, glm::f32> mvp, const GLfloat color[]) const {
   glUseProgram(mDefaultProgram);
 
   GLint vColorLocation = glGetUniformLocation(mDefaultProgram, "vColor");
-  glUniform4fv(vColorLocation, 1, Triangle::kColors);
+  glUniform4fv(vColorLocation, 1, color);
 
   GLint mvpLocation = glGetUniformLocation(mDefaultProgram, "mvp");
   glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(mvp));

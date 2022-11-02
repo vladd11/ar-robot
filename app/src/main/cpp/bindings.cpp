@@ -135,10 +135,26 @@ int saveAnchor(lua_State *L) {
 
   if (state == AR_TRACKING_STATE_TRACKING) {
     ArAnchor *cloudAnchor;
-    if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->ArSession(), uiAnchor->anchor, 365,
-                                                      &cloudAnchor) == AR_SUCCESS) {
-      lua_pushboolean(L, true);
-    } else lua_pushnil(L);
+    if(uiAnchor->cloudAnchor != nullptr) {
+      ArAnchor_release(uiAnchor->cloudAnchor);
+    }
+
+    ArPose *pose;
+    ArPose_create(self->ArSession(), nullptr, &pose);
+    ArCamera_getPose(self->ArSession(), self->getArCamera(), pose);
+
+    ArFeatureMapQuality quality;
+    ArSession_estimateFeatureMapQualityForHosting(self->ArSession(), pose, &quality);
+
+    ArPose_destroy(pose);
+
+    if(quality == AR_FEATURE_MAP_QUALITY_GOOD) {
+      if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->ArSession(), uiAnchor->anchor, 365,
+                                                        &cloudAnchor) == AR_SUCCESS) {
+        uiAnchor->cloudAnchor = cloudAnchor;
+        lua_pushboolean(L, true);
+      } else lua_pushstring(L, "NO_ANCHOR");
+    } else lua_pushstring(L, "QUALITY_INSUFFICIENT");
   } else lua_pushnil(L);
 
   return 1;

@@ -18,11 +18,12 @@ private:
 
 public:
   ArUiRenderer();
+
   ~ArUiRenderer();
 
   void init();
 
-  void draw(glm::mat<4, 4, glm::f32> mvp) const;
+  void draw(glm::mat<4, 4, glm::f32> mvp, const GLfloat color[]) const;
 
   void drawLine(float *points, GLsizei count) const;
 };

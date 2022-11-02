@@ -201,12 +201,18 @@ void Engine::drawFrame() {
       getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
 
       glm::mat4 mvp = projection_mat * view_mat * model_mat;
-      glm::vec4 vec = mvp[3];
-      positions[i] = vec.x / vec.w;
-      positions[i + 1] = vec.y / vec.w;
-      positions[i + 2] = vec.z / vec.w;
+      glm::vec4 vec = mvp[3] / mvp[3][3];
+      positions[i] = vec.x;
+      positions[i + 1] = vec.y;
+      positions[i + 2] = vec.z;
 
-      mArUiRenderer->draw(mvp);
+
+      ArCloudAnchorState state = AR_CLOUD_ANCHOR_STATE_NONE;
+      if (uiAnchor->cloudAnchor != nullptr) {
+        ArAnchor_getCloudAnchorState(mArSession, uiAnchor->cloudAnchor, &state);
+      }
+
+      mArUiRenderer->draw(mvp, stateToColor[state + 10]);
       i += 3;
     }
   }
@@ -313,6 +319,7 @@ void Engine::onTouch(float x, float y) {
 
       auto *uiAnchor = new UiAnchor();
       uiAnchor->anchor = anchor;
+      uiAnchor->cloudAnchor = nullptr;
       mAnchors.push_back(uiAnchor);
     }
     ArHitResultList_destroy(list);
@@ -350,7 +357,7 @@ void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
     ArConfig *arConfig = nullptr;
     ArConfig_create(mArSession, &arConfig);
 
-    ArConfig_setFocusMode(mArSession, arConfig, AR_FOCUS_MODE_AUTO);
+    ArConfig_setCloudAnchorMode(mArSession, arConfig, AR_CLOUD_ANCHOR_MODE_ENABLED);
     ArConfig_setDepthMode(mArSession, arConfig, AR_DEPTH_MODE_DISABLED);
 
     CHECK(arConfig)

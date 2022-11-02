@@ -24,3 +24,7 @@
 -keep class com.vladd11.arshop.NativeEngine {
     static void loadImage();
 }
+
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
