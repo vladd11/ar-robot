@@ -126,12 +126,12 @@ void Engine::drawFrame() {
   // re-query the uv coordinates for the on-screen portion of the camera image.
   int32_t geometry_changed = 0;
   ArFrame_getDisplayGeometryChanged(mArSession, mArFrame, &geometry_changed);
-  if (geometry_changed != 0 || !IsUvMapsInitialized) {
+  if (geometry_changed != 0 || !mIsUvMapsInitialized) {
     ArFrame_transformCoordinates2d(
         mArSession, mArFrame, AR_COORDINATES_2D_OPENGL_NORMALIZED_DEVICE_COORDINATES,
         kNumVertices, kVertices, AR_COORDINATES_2D_TEXTURE_NORMALIZED,
         mTransformedUVs);
-    IsUvMapsInitialized = true;
+    mIsUvMapsInitialized = true;
   }
 
   glm::mat4 view_mat;
@@ -206,10 +206,18 @@ void Engine::drawFrame() {
       positions[i + 1] = vec.y;
       positions[i + 2] = vec.z;
 
-
       ArCloudAnchorState state = AR_CLOUD_ANCHOR_STATE_NONE;
       if (uiAnchor->cloudAnchor != nullptr) {
         ArAnchor_getCloudAnchorState(mArSession, uiAnchor->cloudAnchor, &state);
+        if(state != uiAnchor->prevCloudAnchorState) {
+          char *id;
+          ArAnchor_acquireCloudAnchorId(mArSession, uiAnchor->cloudAnchor, &id);
+
+          onAnchorUpdate(mLuaState, i / 3, state, id);
+          ArString_release(id);
+
+          uiAnchor->prevCloudAnchorState = state;
+        }
       }
 
       mArUiRenderer->draw(mvp, stateToColor[state + 10]);

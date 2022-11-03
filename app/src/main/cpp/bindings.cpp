@@ -15,6 +15,8 @@ extern "C" {
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+#define LUA_ERROR(L, ...) {luaL_error(L, __VA_ARGS__); return 0;}
+
 void registerLibraryPath(lua_State *L, std::string path) {
   lua_getglobal(L, "package");
   lua_getfield(L, -1, "path"); // get field "path" from table at top of stack (-1)
@@ -63,7 +65,7 @@ int loadCode(lua_State *L, const std::string &code, std::string **outError) {
 inline long long checkAnchorIndex(lua_State *L, Engine *engine) {
   long long index = luaL_checkinteger(L, 1);
   if (index >= engine->Anchors().size() || index < 0) {
-    lua_pushnil(L);
+    luaL_error(L, "Array index is out of range");
     return -1;
   }
   return index;
@@ -74,7 +76,7 @@ int anchorPose(lua_State *L) {
 
   long long index = checkAnchorIndex(L, self);
   if (index == -1) {
-    return 1;
+    return 0;
   }
 
   ArAnchor *anchor = self->Anchors()[index]->anchor;
@@ -124,9 +126,7 @@ int saveAnchor(lua_State *L) {
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
 
   long long index = checkAnchorIndex(L, self);
-  if (index == -1) {
-    return 1;
-  }
+  if (index == -1) LUA_ERROR(L, "Array index is out of range")
 
   UiAnchor *uiAnchor = self->Anchors()[index];
 
@@ -135,7 +135,7 @@ int saveAnchor(lua_State *L) {
 
   if (state == AR_TRACKING_STATE_TRACKING) {
     ArAnchor *cloudAnchor;
-    if(uiAnchor->cloudAnchor != nullptr) {
+    if (uiAnchor->cloudAnchor != nullptr) {
       ArAnchor_release(uiAnchor->cloudAnchor);
     }
 
@@ -148,14 +148,14 @@ int saveAnchor(lua_State *L) {
 
     ArPose_destroy(pose);
 
-    if(quality == AR_FEATURE_MAP_QUALITY_GOOD) {
+    if (quality == AR_FEATURE_MAP_QUALITY_GOOD) {
       if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->ArSession(), uiAnchor->anchor, 365,
                                                         &cloudAnchor) == AR_SUCCESS) {
         uiAnchor->cloudAnchor = cloudAnchor;
         lua_pushboolean(L, true);
-      } else lua_pushstring(L, "NO_ANCHOR");
-    } else lua_pushstring(L, "QUALITY_INSUFFICIENT");
-  } else lua_pushnil(L);
+      } else LUA_ERROR(L, "NO_ANCHOR")
+    } else LUA_ERROR(L, "QUALITY_INSUFFICIENT")
+  } else LUA_ERROR(L, "CAMERA_NOT_TRACKING")
 
   return 1;
 }
@@ -175,7 +175,7 @@ int angleToAnchor(lua_State *L) {
 
   long long index = checkAnchorIndex(L, self);
   if (index == -1) {
-    return 1;
+    return 0;
   }
 
   ArTrackingState state;
@@ -202,7 +202,7 @@ int angleToAnchor(lua_State *L) {
       // to XZ plane
       // Calculated by [dot product](https://en.wikipedia.org/wiki/Dot_product)
       float anchorAngle = acos(dot(anchorVector, glm::vec2(0, -1)) / glm::length(anchorVector));
-      if(anchorVector.x < 0) anchorAngle = -anchorAngle;
+      if (anchorVector.x < 0) anchorAngle = -anchorAngle;
 
       // This is YAW (eq. projection of angle between current rotation and forward vector).
       float cameraAngle = glm::pitch(
@@ -212,8 +212,8 @@ int angleToAnchor(lua_State *L) {
 
       ArPose_destroy(anchorPose);
       ArPose_destroy(cameraPose);
-    } else lua_pushnil(L);
-  } else lua_pushnil(L);
+    } else LUA_ERROR(L, "ANCHOR_NOT_TRACkING")
+  } else LUA_ERROR(L, "CAMERA_NOT_TRACKING")
 
   return 1;
 }

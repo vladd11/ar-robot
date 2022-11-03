@@ -7,6 +7,20 @@ extern "C" {
 #include "lua.h"
 }
 
+/**
+ * Call when Cloud Anchor state was changed
+ * @param idx ID in Engine::Anchors list
+ * @param state State of anchor (ArCloudAnchorState enum)
+ * @param anchorId Cloud Anchor ID (from ARCore API)
+ */
+inline int onAnchorUpdate(lua_State *L, int idx, int state, char *anchorId) {
+  lua_getglobal(L, "onAnchorUpdate");
+  lua_pushnumber(L, idx);
+  lua_pushnumber(L, state);
+  lua_pushstring(L, anchorId);
+  return lua_pcall(L, 3, 0, 0);
+}
+
 inline int tick(lua_State *L) {
   lua_getglobal(L, "tick");
   return lua_pcall(L, 0, 0, 0);

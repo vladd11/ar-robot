@@ -17,15 +17,18 @@ extern "C" {
 struct UiAnchor {
   ArAnchor *anchor;
   ArAnchor *cloudAnchor;
+  ArCloudAnchorState prevCloudAnchorState;
 };
 
 static void *ENGINE_KEY = nullptr;
 const GLfloat stateToColor[13][4] = {
+    // Errors, that can't be fixed by user, like outdated SDK
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
+    // Dataset processing failed
     {0, 0, 0.1f, 1},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
@@ -43,7 +46,7 @@ private:
   std::string mStoragePath;
   std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
-  ArCamera *mArCamera;
+  ArCamera *mArCamera{};
   BackgroundRenderer *mBackgroundRenderer;
   ArUiRenderer *mArUiRenderer;
   PlaneRenderer *mPlaneRenderer;
@@ -52,7 +55,7 @@ private:
 
   ServerThread *mServerThread;
 
-  bool IsUvMapsInitialized{};
+  bool mIsUvMapsInitialized{};
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
@@ -67,6 +70,7 @@ public:
   ServerThread *ServerThread() const;
 
   static const int ANCHORS_LIMIT = 10;
+
   lua_State *mLuaState;
 
   Engine(std::string storagePath, JNIEnv *env);
