@@ -26,6 +26,8 @@ inline int tick(lua_State *L) {
   return lua_pcall(L, 0, 0, 0);
 }
 
+int swapAnchors(lua_State *L);
+
 int angleToAnchor(lua_State *L);
 
 int anchorPose(lua_State *L);

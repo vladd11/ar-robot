@@ -62,13 +62,17 @@ int loadCode(lua_State *L, const std::string &code, std::string **outError) {
   return error;
 }
 
-inline long long checkAnchorIndex(lua_State *L, Engine *engine) {
-  long long index = luaL_checkinteger(L, 1);
+inline long long checkAnchorIndex(lua_State *L, Engine *engine, int arg) {
+  long long index = luaL_checkinteger(L, arg);
   if (index >= engine->Anchors().size() || index < 0) {
     luaL_error(L, "Array index is out of range");
     return -1;
   }
   return index;
+}
+
+inline long long checkAnchorIndex(lua_State *L, Engine *engine) {
+  return checkAnchorIndex(L, engine, 1);
 }
 
 int anchorPose(lua_State *L) {
@@ -216,6 +220,17 @@ int angleToAnchor(lua_State *L) {
   } else LUA_ERROR(L, "CAMERA_NOT_TRACKING")
 
   return 1;
+}
+
+int swapAnchors(lua_State *L) {
+  auto *self = getStruct<Engine *>(L, ENGINE_KEY);
+
+  long long idx = checkAnchorIndex(L, self, 1);
+  long long idx1 = checkAnchorIndex(L, self, 2);
+
+  std::swap(self->mAnchors[idx], self->mAnchors[idx1]);
+
+  return 0;
 }
 
 int log(lua_State *L) {

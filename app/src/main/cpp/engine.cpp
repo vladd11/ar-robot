@@ -65,6 +65,7 @@ Engine::Engine(std::string storagePath, JNIEnv *env) {
   lua_register(mLuaState, "cameraPose", cameraPose);
   lua_register(mLuaState, "print", log);
   lua_register(mLuaState, "saveAnchor", saveAnchor);
+  lua_register(mLuaState, "swapAnchors", swapAnchors);
 }
 
 Engine::~Engine() {
@@ -209,7 +210,7 @@ void Engine::drawFrame() {
       ArCloudAnchorState state = AR_CLOUD_ANCHOR_STATE_NONE;
       if (uiAnchor->cloudAnchor != nullptr) {
         ArAnchor_getCloudAnchorState(mArSession, uiAnchor->cloudAnchor, &state);
-        if(state != uiAnchor->prevCloudAnchorState) {
+        if (state != uiAnchor->prevCloudAnchorState) {
           char *id;
           ArAnchor_acquireCloudAnchorId(mArSession, uiAnchor->cloudAnchor, &id);
 

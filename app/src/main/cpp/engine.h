@@ -44,7 +44,6 @@ const GLfloat stateToColor[13][4] = {
 class Engine {
 private:
   std::string mStoragePath;
-  std::vector<UiAnchor *> mAnchors;
   ArFrame *mArFrame{};
   ArCamera *mArCamera{};
   BackgroundRenderer *mBackgroundRenderer;
@@ -59,6 +58,7 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
+  std::vector<UiAnchor *> mAnchors;
   std::vector<UiAnchor *> Anchors() const;
 
   ArSession *ArSession() const;
