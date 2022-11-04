@@ -59,7 +59,6 @@ private:
 
 public:
   std::vector<UiAnchor *> mAnchors;
-  std::vector<UiAnchor *> Anchors() const;
 
   ArSession *ArSession() const;
 

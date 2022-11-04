@@ -64,7 +64,7 @@ int loadCode(lua_State *L, const std::string &code, std::string **outError) {
 
 inline long long checkAnchorIndex(lua_State *L, Engine *engine, int arg) {
   long long index = luaL_checkinteger(L, arg);
-  if (index >= engine->Anchors().size() || index < 0) {
+  if (index >= engine->mAnchors.size() || index < 0) {
     luaL_error(L, "Array index is out of range");
     return -1;
   }
@@ -83,7 +83,7 @@ int anchorPose(lua_State *L) {
     return 0;
   }
 
-  ArAnchor *anchor = self->Anchors()[index]->anchor;
+  ArAnchor *anchor = self->mAnchors[index]->anchor;
 
   ArTrackingState state;
   ArAnchor_getTrackingState(self->ArSession(), anchor, &state);
@@ -132,7 +132,7 @@ int saveAnchor(lua_State *L) {
   long long index = checkAnchorIndex(L, self);
   if (index == -1) LUA_ERROR(L, "Array index is out of range")
 
-  UiAnchor *uiAnchor = self->Anchors()[index];
+  UiAnchor *uiAnchor = self->mAnchors[index];
 
   ArTrackingState state;
   ArCamera_getTrackingState(self->ArSession(), self->getArCamera(), &state);
@@ -186,7 +186,7 @@ int angleToAnchor(lua_State *L) {
   ArCamera_getTrackingState(self->ArSession(), self->getArCamera(), &state);
 
   if (state == AR_TRACKING_STATE_TRACKING) {
-    ArAnchor *anchor = self->Anchors()[index]->anchor;
+    ArAnchor *anchor = self->mAnchors[index]->anchor;
 
     ArAnchor_getTrackingState(self->ArSession(), anchor, &state);
     if (state == AR_TRACKING_STATE_TRACKING) {

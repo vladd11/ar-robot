@@ -445,7 +445,7 @@ void Engine::resize(int rotation, int width, int height) {
   }
 }
 
-std::vector<UiAnchor *> Engine::Anchors() const {
+std::vector<UiAnchor *> Engine::mAnchors const {
   return mAnchors;
 }
 
