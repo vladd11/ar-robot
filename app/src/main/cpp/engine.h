@@ -29,16 +29,16 @@ const GLfloat stateToColor[13][4] = {
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     // Dataset processing failed
-    {0, 0, 0.1f, 1},
+    {0,           0,           0.1f,        1},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
     // In progress
-    {1, 0, 0, 1},
+    {1,           0,           0,           1},
     // Completed
-    {0, 1, 0, 1}
+    {0,           1,           0,           1}
 };
 
 class Engine {
@@ -58,17 +58,17 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
-  std::vector<UiAnchor *> mAnchors;
-
-  ArSession *ArSession() const;
+  ArSession *getArSession() const;
 
   ArCamera *getArCamera() const;
 
-  ArFrame *ArFrame() const;
+  ArFrame *getArFrame() const;
 
-  ServerThread *ServerThread() const;
+  ServerThread *getServerThread() const;
 
   static const int ANCHORS_LIMIT = 10;
+
+  std::vector<UiAnchor *> mAnchors;
 
   lua_State *mLuaState;
 

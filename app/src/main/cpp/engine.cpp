@@ -449,15 +449,15 @@ std::vector<UiAnchor *> Engine::mAnchors const {
   return mAnchors;
 }
 
-ArSession *Engine::ArSession() const {
+ArSession *Engine::getArSession() const {
   return mArSession;
 }
 
-ArFrame *Engine::ArFrame() const {
+ArFrame *Engine::getArFrame() const {
   return mArFrame;
 }
 
-ServerThread *Engine::ServerThread() const {
+ServerThread *Engine::getServerThread() const {
   return mServerThread;
 }
 

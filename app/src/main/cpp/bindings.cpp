@@ -86,13 +86,13 @@ int anchorPose(lua_State *L) {
   ArAnchor *anchor = self->mAnchors[index]->anchor;
 
   ArTrackingState state;
-  ArAnchor_getTrackingState(self->ArSession(), anchor, &state);
+  ArAnchor_getTrackingState(self->getArSession(), anchor, &state);
   if (state == AR_TRACKING_STATE_TRACKING) {
     ArPose *pose;
-    ArPose_create(self->ArSession(), nullptr, &pose);
-    ArAnchor_getPose(self->ArSession(), anchor, pose);
+    ArPose_create(self->getArSession(), nullptr, &pose);
+    ArAnchor_getPose(self->getArSession(), anchor, pose);
 
-    lua_pushPose(L, self->ArSession(), pose);
+    lua_pushPose(L, self->getArSession(), pose);
 
     ArPose_destroy(pose);
   } else {
@@ -106,19 +106,19 @@ int cameraPose(lua_State *L) {
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
 
   ArCamera *camera;
-  ArFrame_acquireCamera(self->ArSession(), self->ArFrame(), &camera);
+  ArFrame_acquireCamera(self->getArSession(), self->getArFrame(), &camera);
 
   ArTrackingState state;
-  ArCamera_getTrackingState(self->ArSession(), camera, &state);
+  ArCamera_getTrackingState(self->getArSession(), camera, &state);
 
   if (state != AR_TRACKING_STATE_TRACKING) {
     for (int i = 0; i < 6; i++) lua_pushnil(L);
   } else {
     ArPose *pose;
-    ArPose_create(self->ArSession(), nullptr, &pose);
-    ArCamera_getPose(self->ArSession(), camera, pose);
+    ArPose_create(self->getArSession(), nullptr, &pose);
+    ArCamera_getPose(self->getArSession(), camera, pose);
 
-    lua_pushPose(L, self->ArSession(), pose);
+    lua_pushPose(L, self->getArSession(), pose);
 
     ArPose_destroy(pose);
   }
@@ -135,7 +135,7 @@ int saveAnchor(lua_State *L) {
   UiAnchor *uiAnchor = self->mAnchors[index];
 
   ArTrackingState state;
-  ArCamera_getTrackingState(self->ArSession(), self->getArCamera(), &state);
+  ArCamera_getTrackingState(self->getArSession(), self->getArCamera(), &state);
 
   if (state == AR_TRACKING_STATE_TRACKING) {
     ArAnchor *cloudAnchor;
@@ -144,16 +144,16 @@ int saveAnchor(lua_State *L) {
     }
 
     ArPose *pose;
-    ArPose_create(self->ArSession(), nullptr, &pose);
-    ArCamera_getPose(self->ArSession(), self->getArCamera(), pose);
+    ArPose_create(self->getArSession(), nullptr, &pose);
+    ArCamera_getPose(self->getArSession(), self->getArCamera(), pose);
 
     ArFeatureMapQuality quality;
-    ArSession_estimateFeatureMapQualityForHosting(self->ArSession(), pose, &quality);
+    ArSession_estimateFeatureMapQualityForHosting(self->getArSession(), pose, &quality);
 
     ArPose_destroy(pose);
 
     if (quality == AR_FEATURE_MAP_QUALITY_GOOD) {
-      if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->ArSession(), uiAnchor->anchor, 365,
+      if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->getArSession(), uiAnchor->anchor, 365,
                                                         &cloudAnchor) == AR_SUCCESS) {
         uiAnchor->cloudAnchor = cloudAnchor;
         lua_pushboolean(L, true);
@@ -169,7 +169,7 @@ int send(lua_State *L) {
   const char *str = luaL_checklstring(L, 1, &len);
 
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
-  self->ServerThread()->out.enqueue(new std::string(str, len));
+  self->getServerThread()->out.enqueue(new std::string(str, len));
 
   return 0;
 }
@@ -183,23 +183,23 @@ int angleToAnchor(lua_State *L) {
   }
 
   ArTrackingState state;
-  ArCamera_getTrackingState(self->ArSession(), self->getArCamera(), &state);
+  ArCamera_getTrackingState(self->getArSession(), self->getArCamera(), &state);
 
   if (state == AR_TRACKING_STATE_TRACKING) {
     ArAnchor *anchor = self->mAnchors[index]->anchor;
 
-    ArAnchor_getTrackingState(self->ArSession(), anchor, &state);
+    ArAnchor_getTrackingState(self->getArSession(), anchor, &state);
     if (state == AR_TRACKING_STATE_TRACKING) {
       ArPose *anchorPose, *cameraPose;
-      ArPose_create(self->ArSession(), nullptr, &anchorPose);
-      ArPose_create(self->ArSession(), nullptr, &cameraPose);
+      ArPose_create(self->getArSession(), nullptr, &anchorPose);
+      ArPose_create(self->getArSession(), nullptr, &cameraPose);
 
-      ArAnchor_getPose(self->ArSession(), anchor, anchorPose);
-      ArCamera_getPose(self->ArSession(), self->getArCamera(), cameraPose);
+      ArAnchor_getPose(self->getArSession(), anchor, anchorPose);
+      ArCamera_getPose(self->getArSession(), self->getArCamera(), cameraPose);
 
       float anchorPoseRaw[7], cameraPoseRaw[7];
-      ArPose_getPoseRaw(self->ArSession(), anchorPose, anchorPoseRaw);
-      ArPose_getPoseRaw(self->ArSession(), cameraPose, cameraPoseRaw);
+      ArPose_getPoseRaw(self->getArSession(), anchorPose, anchorPoseRaw);
+      ArPose_getPoseRaw(self->getArSession(), cameraPose, cameraPoseRaw);
 
       glm::vec2 anchorVector = glm::vec2(anchorPoseRaw[4], anchorPoseRaw[6]);
       // This is projection of angle (between anchor coordinates and (0, 0, -1) camera forward vector)
