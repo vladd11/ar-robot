@@ -1,10 +1,18 @@
 #include "plane_renderer.h"
+#include <GLES2/gl2ext.h>
+#include <android/asset_manager.h>
+#include <string>
+#include <cstdint>
+
+#include "shaders/plane.h"
+#include "gl_util.h"
+#include <arcode_cxx_api.hpp>
 
 #define TAG "PlaneRenderer"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
-void PlaneRenderer::init() {
+void PlaneRenderer::init(JNIEnv *env) {
   mShaderProgram = PlaneShader::compile();
   if (!mShaderProgram) {
     LOGE("Could not create program.");
@@ -23,7 +31,7 @@ void PlaneRenderer::init() {
                   GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  loadPngToGl(mEnv);
+  loadPngToGl(env);
   glGenerateMipmap(GL_TEXTURE_2D);
 
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -114,13 +122,10 @@ void PlaneRenderer::updatePlane(const ArPlane &ar_plane) {
     mVertices.emplace_back(raw_vertices[i].x, raw_vertices[i].y, 0.0f);
   }
 
-  ArPose *arPose;
-  ArPose_create(mArSession, nullptr, &arPose);
-  ArPlane_getCenterPose(mArSession, &ar_plane, arPose);
-  ArPose_getMatrix(mArSession, arPose,
-                   glm::value_ptr(model_mat));
-  normal_vec_ = getPlaneNormal(mArSession, *arPose);
-  ArPose_destroy(arPose);
+  Ar::Pose pose(mArSession, nullptr);
+  ArPlane_getCenterPose(mArSession, &ar_plane, *pose);
+  pose.getMatrix(mArSession, glm::value_ptr(model_mat));
+  normal_vec_ = getPlaneNormal(mArSession, **pose);
 
   // Feather distance 0.2 meters.
   const float kFeatherLength = 0.2f;

@@ -2,8 +2,7 @@
 
 extern "C" {
 #include "lua.h"
-#include "lualib.h"
-#include "luasocket.h"
+#include "lauxlib.h"
 }
 
 #include "mongoose.h"
@@ -11,10 +10,9 @@ extern "C" {
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/log.h>
-#include <android/asset_manager.h>
 #include <jni.h>
-#include <array>
 #include <thread>
+#include <arcode_cxx_api.hpp>
 
 #include "gl_util.h"
 #include "shaders/default.h"
@@ -46,26 +44,15 @@ extern "C" {
     return;                                                                \
   }
 
-Engine::Engine(std::string storagePath, JNIEnv *env) {
-  mLuaState = luaL_newstate();
+Engine::Engine(std::string storagePath) {
   mStoragePath = std::move(storagePath);
+  mLuaState = createLuaState(mStoragePath);
+  pushStruct(mLuaState, this, (void *) ENGINE_KEY);
+
   mServerThread = new class ServerThread();
   mBackgroundRenderer = new BackgroundRenderer();
-  mPlaneRenderer = new PlaneRenderer(env);
+  mPlaneRenderer = new PlaneRenderer();
   mArUiRenderer = new ArUiRenderer();
-
-  luaL_openlibs(mLuaState);
-
-  pushStruct(mLuaState, this, (void *) ENGINE_KEY);
-  registerLibraryPath(mLuaState, mStoragePath);
-  lua_register(mLuaState, "anchorPose", anchorPose);
-  lua_register(mLuaState, "requireSockets", luaopen_socket_core);
-  lua_register(mLuaState, "angleToAnchor", angleToAnchor);
-  lua_register(mLuaState, "send", send);
-  lua_register(mLuaState, "cameraPose", cameraPose);
-  lua_register(mLuaState, "print", log);
-  lua_register(mLuaState, "saveAnchor", saveAnchor);
-  lua_register(mLuaState, "swapAnchors", swapAnchors);
 }
 
 Engine::~Engine() {
@@ -77,23 +64,21 @@ Engine::~Engine() {
   }
   delete mBackgroundRenderer;
   delete mArUiRenderer;
-  delete mBackgroundRenderer;
   delete mServerThread;
 }
 
-void Engine::init() {
+void Engine::init(JNIEnv *env) {
+  mEnv = env; // This is required because it's the last env bound to GLThread
   std::thread thr{[this] {
       (*mServerThread)();
   }};
   thr.detach();
 
   if (luaL_dofile(mLuaState, mStoragePath.append("/script.lua").c_str()) != LUA_OK) {
-    size_t size = 0;
-    const char *str = lua_tolstring(mLuaState, -1, &size);
-    LOGE("%s", std::string(str, size).c_str());
+    printLuaError(mLuaState);
   }
 
-  mPlaneRenderer->init();
+  mPlaneRenderer->init(env);
   mBackgroundRenderer->init();
   mArUiRenderer->init();
 }
@@ -118,10 +103,8 @@ void Engine::drawFrame() {
 
   ArFrame_acquireCamera(mArSession, mArFrame, &mArCamera);
 
-  ArPose *pose = nullptr;
-  ArPose_create(mArSession, nullptr, &pose);
-  ArCamera_getPose(mArSession, mArCamera, pose);
-  ArPose_destroy(pose);
+  Ar::Pose pose(mArSession, nullptr);
+  ArCamera_getPose(mArSession, mArCamera, *pose);
 
   // If display rotation changed (also includes view size change), we need to
   // re-query the uv coordinates for the on-screen portion of the camera image.
@@ -207,9 +190,10 @@ void Engine::drawFrame() {
       positions[i + 1] = vec.y;
       positions[i + 2] = vec.z;
 
-      ArCloudAnchorState state = AR_CLOUD_ANCHOR_STATE_NONE;
       if (uiAnchor->cloudAnchor != nullptr) {
+        ArCloudAnchorState state;
         ArAnchor_getCloudAnchorState(mArSession, uiAnchor->cloudAnchor, &state);
+        uiAnchor->colors = stateToColor[state + 10];
         if (state != uiAnchor->prevCloudAnchorState) {
           char *id;
           ArAnchor_acquireCloudAnchorId(mArSession, uiAnchor->cloudAnchor, &id);
@@ -221,7 +205,7 @@ void Engine::drawFrame() {
         }
       }
 
-      mArUiRenderer->draw(mvp, stateToColor[state + 10]);
+      mArUiRenderer->draw(mvp, uiAnchor->colors);
       i += 3;
     }
   }
@@ -278,18 +262,16 @@ void Engine::onTouch(float x, float y) {
 
         // Use hit pose and camera pose to check if hittest is from the
         // back of the plane, if it is, no need to create the anchor.
-        ArPose *cameraPose = nullptr;
-        ArPose_create(mArSession, nullptr, &cameraPose);
+        Ar::Pose cameraPose(mArSession, nullptr);
 
         ArCamera *arCamera;
         ArFrame_acquireCamera(mArSession, mArFrame, &arCamera);
-        ArCamera_getPose(mArSession, arCamera, cameraPose);
+        ArCamera_getPose(mArSession, arCamera, *cameraPose);
         ArCamera_release(arCamera);
         float distanceToPlane = calculateDistanceToPlane(
-            mArSession, *hitPose, *cameraPose);
+            mArSession, *hitPose, **cameraPose);
 
         ArPose_destroy(hitPose);
-        ArPose_destroy(cameraPose);
 
         if (!insidePolygon || distanceToPlane < 0) {
           continue;
@@ -329,20 +311,18 @@ void Engine::onTouch(float x, float y) {
       auto *uiAnchor = new UiAnchor();
       uiAnchor->anchor = anchor;
       uiAnchor->cloudAnchor = nullptr;
+      uiAnchor->colors = new GLfloat[4]{0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
       mAnchors.push_back(uiAnchor);
     }
     ArHitResultList_destroy(list);
   }
 }
 
-void Engine::getTransformMatrixFromAnchor(const ArAnchor &ar_anchor, glm::mat4 *out_model_mat) {
-  ArPose *pose;
+void Engine::getTransformMatrixFromAnchor(const ArAnchor &arAnchor, glm::mat4 *out_model_mat) {
+  Ar::Pose pose(mArSession, nullptr);
 
-  ArPose_create(mArSession, nullptr, &pose);
-  ArAnchor_getPose(mArSession, &ar_anchor, pose);
-  ArPose_getMatrix(mArSession, pose, glm::value_ptr(*out_model_mat));
-
-  ArPose_destroy(pose);
+  ArAnchor_getPose(mArSession, &arAnchor, *pose);
+  pose.getMatrix(mArSession, glm::value_ptr(*out_model_mat));
 }
 
 void Engine::resume(JNIEnv *env, jobject context, jobject activity) {
@@ -445,10 +425,6 @@ void Engine::resize(int rotation, int width, int height) {
   }
 }
 
-std::vector<UiAnchor *> Engine::mAnchors const {
-  return mAnchors;
-}
-
 ArSession *Engine::getArSession() const {
   return mArSession;
 }
@@ -463,4 +439,8 @@ ServerThread *Engine::getServerThread() const {
 
 ArCamera *Engine::getArCamera() const {
   return mArCamera;
+}
+
+JNIEnv *Engine::getJNIEnv() const {
+  return mEnv;
 }

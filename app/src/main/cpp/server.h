@@ -10,11 +10,6 @@
 
 static const char *s_listen_on = "ws://0.0.0.0:8000";
 
-struct Message {
-  const void *buf;
-  size_t len;
-};
-
 class ServerThread {
 public:
   std::vector<mg_connection *> mConnections;

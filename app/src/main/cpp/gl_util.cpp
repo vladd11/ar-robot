@@ -15,15 +15,7 @@ void checkGlError(const char *operation) {
   }
 }
 
-static JavaVM *jvm;
-
-JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-  jvm = vm;
-  return JNI_VERSION_1_6;
-}
-
 bool loadPngToGl(JNIEnv *env) {
-  jvm->AttachCurrentThread(&env, nullptr);
   jclass cls = env->FindClass("com/vladd11/arshop/NativeEngine");
   env->CallStaticVoidMethod(cls, env->GetStaticMethodID(cls, "loadImage", "()V"));
   return true;

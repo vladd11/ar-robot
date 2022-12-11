@@ -8,13 +8,15 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
+import android.widget.TextView
 import java.io.File
 import java.io.IOException
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 
-class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
+class NativeEngine(private val context: Context) :
+    GLSurfaceView.Renderer {
     private val filesDir = context.getExternalFilesDir("scripts")
     private val nativeEngine = newNativeEngine(filesDir.toString())
 
@@ -77,7 +79,6 @@ class NativeEngine(private val context: Context) : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        loadImage()
         onSurfaceCreated(nativeEngine)
     }
 

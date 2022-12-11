@@ -5,6 +5,7 @@
 
 extern "C" {
 #include "lua.h"
+#include "lauxlib.h"
 }
 
 /**
@@ -21,10 +22,23 @@ inline int onAnchorUpdate(lua_State *L, int idx, int state, char *anchorId) {
   return lua_pcall(L, 3, 0, 0);
 }
 
-inline int tick(lua_State *L) {
-  lua_getglobal(L, "tick");
-  return lua_pcall(L, 0, 0, 0);
+inline void printLuaError(lua_State *L) {
+  __android_log_print(ANDROID_LOG_ERROR, "Lua", "%s", lua_tostring(L, -1));
 }
+
+inline void tick(lua_State *L) {
+  lua_getglobal(L, "tick");
+  if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
+    printLuaError(L);
+  }
+}
+
+/**
+ * Takes 3 arguments: RGB colors in range [0.0, 1.0].
+ */
+int setColor(lua_State *L);
+
+int getAnchorsCount(lua_State *L);
 
 int swapAnchors(lua_State *L);
 
@@ -49,7 +63,7 @@ int send(lua_State *L);
 
 int log(lua_State *L);
 
-void registerLibraryPath(lua_State *L, std::string path);
+lua_State *createLuaState(std::string path);
 
 template<class T>
 T getStruct(lua_State *L, void *key) {

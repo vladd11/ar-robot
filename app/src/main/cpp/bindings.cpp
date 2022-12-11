@@ -5,8 +5,8 @@
 #pragma ide diagnostic ignored "ConstantFunctionResult" // Lua functions may return const value of results
 
 extern "C" {
-#include "lua.h"
-#include "lauxlib.h"
+#include "lualib.h"
+#include "luasocket.h"
 }
 
 #include <cmath>
@@ -17,7 +17,24 @@ extern "C" {
 
 #define LUA_ERROR(L, ...) {luaL_error(L, __VA_ARGS__); return 0;}
 
-void registerLibraryPath(lua_State *L, std::string path) {
+static const struct luaL_Reg bindings[] = {
+    {"setScreenText",   setScreenText},
+    {"anchorPose",      anchorPose},
+    {"setColor",        setColor},
+    {"getAnchorsCount", getAnchorsCount},
+    {"swapAnchors",     swapAnchors},
+    {"angleToAnchor",   angleToAnchor},
+    {"saveAnchor",      saveAnchor},
+    {"cameraPose",      cameraPose},
+    {"send",            send},
+    {"requireSockets",  luaopen_socket_core},
+    {"print",           log},
+};
+
+lua_State *createLuaState(std::string path) {
+  lua_State *L = luaL_newstate();
+  luaL_openlibs(L);
+
   lua_getglobal(L, "package");
   lua_getfield(L, -1, "path"); // get field "path" from table at top of stack (-1)
   std::string cur_path = lua_tostring(L, -1); // grab path string from top of stack
@@ -27,20 +44,26 @@ void registerLibraryPath(lua_State *L, std::string path) {
   lua_pushstring(L, path.c_str()); // push the new one
   lua_setfield(L, -2, "path"); // set the field "path" in table at -2 with value at top of stack
   lua_pop(L, 1);
+
+  for (luaL_Reg binding: bindings) {
+    lua_register(L, binding.name, binding.func);
+  }
+
+  return L;
 }
 
 /**
  * Pushes 7 values of raw pose from ArPose.
- * Order: (Rotation)XYZ(Position)XYZ
+ * Order: (Rotation)WXYZ(Position)XYZ
  */
 void lua_pushPose(lua_State *L, ArSession *session, ArPose *pose) {
   float raw[7];
   ArPose_getPoseRaw(session, pose, raw);
 
-  glm::vec3 vec = glm::eulerAngles(glm::quat(raw[3], raw[0], raw[1], raw[2]));
-  lua_pushnumber(L, vec.x);
-  lua_pushnumber(L, vec.y);
-  lua_pushnumber(L, vec.z);
+  lua_pushnumber(L, raw[3]);
+  lua_pushnumber(L, raw[0]);
+  lua_pushnumber(L, raw[1]);
+  lua_pushnumber(L, raw[2]);
 
   lua_pushnumber(L, raw[4]);
   lua_pushnumber(L, raw[5]);
@@ -96,10 +119,10 @@ int anchorPose(lua_State *L) {
 
     ArPose_destroy(pose);
   } else {
-    for (int i = 0; i < 6; i++) lua_pushnil(L);
+    for (int i = 0; i < 7; i++) lua_pushnil(L);
   }
 
-  return 6;
+  return 7;
 }
 
 int cameraPose(lua_State *L) {
@@ -123,7 +146,7 @@ int cameraPose(lua_State *L) {
     ArPose_destroy(pose);
   }
 
-  return 6;
+  return 7;
 }
 
 int saveAnchor(lua_State *L) {
@@ -222,6 +245,13 @@ int angleToAnchor(lua_State *L) {
   return 1;
 }
 
+int getAnchorsCount(lua_State *L) {
+  auto *self = getStruct<Engine *>(L, ENGINE_KEY);
+
+  lua_pushinteger(L, (long long) self->mAnchors.size());
+  return 1;
+}
+
 int swapAnchors(lua_State *L) {
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
 
@@ -241,6 +271,23 @@ int log(lua_State *L) {
     LOGD("%s", std::string(s, l).c_str());
     lua_pop(L, 1); // pop result
   }
+  return 0;
+}
+
+int setColor(lua_State *L) {
+  lua_Integer id = luaL_checkinteger(L, 1);
+  auto R = (float) luaL_checknumber(L, 2);
+  auto G = (float) luaL_checknumber(L, 3);
+  auto B = (float) luaL_checknumber(L, 4);
+
+
+  if (R > 1.0 || G > 1.0 || B > 1.0 || R < 0.0 || G < 0.0 || B < 0.0) {
+    luaL_error(L, "Invalid color value");
+  }
+
+  auto *self = getStruct<Engine *>(L, ENGINE_KEY);
+  self->mAnchors[id]->colors = new float[4]{R, G, B, 1.0f};
+
   return 0;
 }
 

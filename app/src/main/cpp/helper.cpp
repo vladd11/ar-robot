@@ -8,18 +8,26 @@ inline Engine *native(jlong pointer) {
   return reinterpret_cast<Engine *>(pointer);
 }
 
+static JavaVM *jvm;
+
+JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+  jvm = vm;
+  return JNI_VERSION_1_6;
+}
+
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_vladd11_arshop_NativeEngine_newNativeEngine(JNIEnv *env, jobject thiz,
                                                      jstring jStoragePath) {
   std::string storagePath;
   storagePath = env->GetStringUTFChars(jStoragePath, nullptr);
-  return ((jlong) new Engine(storagePath, env));
+  return ((jlong) new Engine(storagePath));
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_vladd11_arshop_NativeEngine_onSurfaceCreated(JNIEnv *env, jobject thiz,
                                                       jlong pointer) {
-  native(pointer)->init();
+  jvm->AttachCurrentThread(&env, nullptr); // Attaching GLThread
+  native(pointer)->init(env);
 }
 
 extern "C" JNIEXPORT void JNICALL

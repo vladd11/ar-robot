@@ -2,6 +2,8 @@ package com.vladd11.arshop
 
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
