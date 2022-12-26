@@ -18,7 +18,6 @@ extern "C" {
 #define LUA_ERROR(L, ...) {luaL_error(L, __VA_ARGS__); return 0;}
 
 static const struct luaL_Reg bindings[] = {
-    {"setScreenText",   setScreenText},
     {"anchorPose",      anchorPose},
     {"setColor",        setColor},
     {"getAnchorsCount", getAnchorsCount},
@@ -28,6 +27,7 @@ static const struct luaL_Reg bindings[] = {
     {"cameraPose",      cameraPose},
     {"send",            send},
     {"requireSockets",  luaopen_socket_core},
+    {"setText",         setText},
     {"print",           log},
 };
 
@@ -193,6 +193,16 @@ int send(lua_State *L) {
 
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
   self->getServerThread()->out.enqueue(new std::string(str, len));
+
+  return 0;
+}
+
+int setText(lua_State *L) {
+  size_t len;
+  const char *str = luaL_checklstring(L, 1, &len);
+
+  auto *self = getStruct<Engine *>(L, ENGINE_KEY);
+  self->getCallbacks()->setText(str);
 
   return 0;
 }

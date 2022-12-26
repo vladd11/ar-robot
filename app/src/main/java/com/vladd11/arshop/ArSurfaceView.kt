@@ -4,15 +4,27 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.opengl.GLSurfaceView
+import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 
 @SuppressLint("ClickableViewAccessibility")
-class ArSurfaceView(context: Context) : GLSurfaceView(context) {
+class ArSurfaceView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : GLSurfaceView(context, attrs) {
     val nativeEngine = NativeEngine(context)
+    private var textListener: (str: String) -> Unit = {}
+
+    fun setTextListener(textListener: (str: String) -> Unit) {
+        this.textListener = textListener
+    }
 
     init {
+        nativeEngine.setTextListener { textListener(it) }
+
         val gestureDetector = GestureDetector(
             context,
             object : SimpleOnGestureListener() {
@@ -37,6 +49,7 @@ class ArSurfaceView(context: Context) : GLSurfaceView(context) {
         renderMode = RENDERMODE_CONTINUOUSLY
         setWillNotDraw(false)
     }
+
 
     fun resume(activity: Activity) {
         onResume()

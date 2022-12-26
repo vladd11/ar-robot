@@ -28,6 +28,7 @@ add_library(
         ar_ui_renderer.cpp
         gl_util.cpp
         bindings.cpp
+        jni_callbacks.cpp
 
         safe_queue.cpp
         verts/plane.cpp

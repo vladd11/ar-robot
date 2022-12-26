@@ -7,19 +7,12 @@ extern "C" {
 
 #include "mongoose.h"
 
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
 #include <android/log.h>
-#include <jni.h>
 #include <thread>
 #include <arcode_cxx_api.hpp>
 
-#include "gl_util.h"
-#include "shaders/default.h"
-#include "verts/triangle.h"
 #include "background_renderer.h"
 #include "plane_renderer.h"
-#include "yuv2rgb.h"
 #include "ar_ui_renderer.h"
 #include "verts/triangle.h"
 #include "glm.h"
@@ -44,7 +37,8 @@ extern "C" {
     return;                                                                \
   }
 
-Engine::Engine(std::string storagePath) {
+Engine::Engine(std::string storagePath, JNICallbacks *callbacks) {
+  mCallbacks = callbacks;
   mStoragePath = std::move(storagePath);
   mLuaState = createLuaState(mStoragePath);
   pushStruct(mLuaState, this, (void *) ENGINE_KEY);
@@ -62,13 +56,14 @@ Engine::~Engine() {
     ArSession_destroy(mArSession);
     ArFrame_destroy(mArFrame);
   }
+  delete mCallbacks;
   delete mBackgroundRenderer;
   delete mArUiRenderer;
   delete mServerThread;
 }
 
-void Engine::init(JNIEnv *env) {
-  mEnv = env; // This is required because it's the last env bound to GLThread
+void Engine::init() {
+  mCallbacks->attach();
   std::thread thr{[this] {
       (*mServerThread)();
   }};
@@ -78,7 +73,7 @@ void Engine::init(JNIEnv *env) {
     printLuaError(mLuaState);
   }
 
-  mPlaneRenderer->init(env);
+  mPlaneRenderer->init(mCallbacks);
   mBackgroundRenderer->init();
   mArUiRenderer->init();
 }
@@ -441,6 +436,6 @@ ArCamera *Engine::getArCamera() const {
   return mArCamera;
 }
 
-JNIEnv *Engine::getJNIEnv() const {
-  return mEnv;
+JNICallbacks *Engine::getCallbacks() const {
+  return mCallbacks;
 }

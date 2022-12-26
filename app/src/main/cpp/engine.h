@@ -43,7 +43,7 @@ static GLfloat stateToColor[13][4] = {
 
 class Engine {
 private:
-  JNIEnv *mEnv;
+  JNICallbacks *mCallbacks{};
   std::string mStoragePath;
   ArFrame *mArFrame{};
   ArCamera *mArCamera{};
@@ -59,25 +59,17 @@ private:
   float mTransformedUVs[kNumVertices * 2]{};
 
 public:
-  ArSession *getArSession() const;
-
-  ArCamera *getArCamera() const;
-
-  ArFrame *getArFrame() const;
-
-  ServerThread *getServerThread() const;
-
   static const int ANCHORS_LIMIT = 10;
 
   std::vector<UiAnchor *> mAnchors;
 
   lua_State *mLuaState;
 
-  Engine(std::string storagePath);
+  Engine(std::string storagePath, JNICallbacks *callbacks);
 
   ~Engine();
 
-  void init(JNIEnv *env);
+  void init();
 
   void drawFrame();
 
@@ -91,7 +83,15 @@ public:
 
   void getTransformMatrixFromAnchor(const ArAnchor &arAnchor, glm::mat4 *out_model_mat);
 
-  JNIEnv *getJNIEnv() const;
+  JNICallbacks *getCallbacks() const;
+
+  ArSession *getArSession() const;
+
+  ArCamera *getArCamera() const;
+
+  ArFrame *getArFrame() const;
+
+  ServerThread *getServerThread() const;
 };
 
 #endif //AR_SHOP_ENGINE_H

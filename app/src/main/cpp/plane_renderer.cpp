@@ -12,7 +12,11 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
-void PlaneRenderer::init(JNIEnv *env) {
+PlaneRenderer::PlaneRenderer() = default;
+
+PlaneRenderer::~PlaneRenderer() = default;
+
+void PlaneRenderer::init(JNICallbacks *callbacks) {
   mShaderProgram = PlaneShader::compile();
   if (!mShaderProgram) {
     LOGE("Could not create program.");
@@ -31,7 +35,7 @@ void PlaneRenderer::init(JNIEnv *env) {
                   GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  loadPngToGl(env);
+  callbacks->loadPngToGL();
   glGenerateMipmap(GL_TEXTURE_2D);
 
   glBindTexture(GL_TEXTURE_2D, 0);

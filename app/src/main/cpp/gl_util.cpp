@@ -1,4 +1,5 @@
 #include "gl_util.h"
+#include "jni_callbacks.h"
 
 #define TAG "Engine"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
@@ -13,12 +14,6 @@ void checkGlError(const char *operation) {
   if (anyError) {
     abort();
   }
-}
-
-bool loadPngToGl(JNIEnv *env) {
-  jclass cls = env->FindClass("com/vladd11/arshop/NativeEngine");
-  env->CallStaticVoidMethod(cls, env->GetStaticMethodID(cls, "loadImage", "()V"));
-  return true;
 }
 
 glm::vec3 getPlaneNormal(const ArSession *ar_session,

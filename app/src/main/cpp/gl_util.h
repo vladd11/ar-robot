@@ -22,6 +22,4 @@ float calculateDistanceToPlane(const ArSession *arSession,
                                const ArPose &planePose,
                                const ArPose &cameraPose);
 
-bool loadPngToGl(JNIEnv *env);
-
 #endif //AR_SHOP_GL_UTIL_H

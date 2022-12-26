@@ -7,8 +7,9 @@ import android.graphics.BitmapFactory
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import android.widget.TextView
 import java.io.File
 import java.io.IOException
 import javax.microedition.khronos.egl.EGLConfig
@@ -17,8 +18,10 @@ import javax.microedition.khronos.opengles.GL10
 
 class NativeEngine(private val context: Context) :
     GLSurfaceView.Renderer {
+    private val handler = Handler(Looper.getMainLooper());
     private val filesDir = context.getExternalFilesDir("scripts")
     private val nativeEngine = newNativeEngine(filesDir.toString())
+    private var onTextPlacedListener: (str: String) -> Unit = {}
 
     init {
         assetManager = context.assets
@@ -93,5 +96,16 @@ class NativeEngine(private val context: Context) :
 
     override fun onDrawFrame(gl: GL10?) {
         onDrawFrame(nativeEngine)
+    }
+
+    fun setTextListener(textListener: (str: String) -> Unit) {
+        this.onTextPlacedListener = textListener
+    }
+
+    fun setText(str: String) {
+        Log.d(TAG, str)
+        handler.post {
+            this.onTextPlacedListener(str)
+        }
     }
 }

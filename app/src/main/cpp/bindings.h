@@ -63,6 +63,8 @@ int send(lua_State *L);
 
 int log(lua_State *L);
 
+int setText(lua_State *L);
+
 lua_State *createLuaState(std::string path);
 
 template<class T>

@@ -2,7 +2,6 @@ package com.vladd11.arshop
 
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -20,9 +19,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         hideSystemBars()
+        setContentView(R.layout.activity_main)
 
-        glSurfaceView = ArSurfaceView(this)
-        setContentView(glSurfaceView)
+        val textView = findViewById<TextView>(R.id.textView)
+
+        glSurfaceView = findViewById(R.id.arSurfaceView)
+        glSurfaceView.setTextListener {
+            textView.text = it
+        }
     }
 
     override fun onRequestPermissionsResult(
