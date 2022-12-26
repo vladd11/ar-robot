@@ -73,6 +73,7 @@ void Engine::init() {
     printLuaError(mLuaState);
   }
 
+  mRawProgram = RawShader::compile();
   mPlaneRenderer->init(mCallbacks);
   mBackgroundRenderer->init();
   mArUiRenderer->init();
@@ -165,6 +166,12 @@ void Engine::drawFrame() {
 
   ArTrackableList_destroy(plane_list);
   plane_list = nullptr;
+
+  glUseProgram(mRawProgram);
+  glLineWidth(100);
+
+  GLint vColorLocation = glGetUniformLocation(mRawProgram, "vColor");
+  glUniform4fv(vColorLocation, 1, Triangle::kColors);
 
   glm::mat4 model_mat(1.0f);
 

@@ -92,6 +92,8 @@ public:
   ArFrame *getArFrame() const;
 
   ServerThread *getServerThread() const;
+
+  GLuint mRawProgram;
 };
 
 #endif //AR_SHOP_ENGINE_H

@@ -238,8 +238,7 @@ int angleToAnchor(lua_State *L) {
       // This is projection of angle (between anchor coordinates and (0, 0, -1) camera forward vector)
       // to XZ plane
       // Calculated by [dot product](https://en.wikipedia.org/wiki/Dot_product)
-      float anchorAngle = acos(dot(anchorVector, glm::vec2(0, -1)) / glm::length(anchorVector));
-      if (anchorVector.x < 0) anchorAngle = -anchorAngle;
+      float anchorAngle = atan2f(anchorVector.y, anchorVector.x) + (float) M_PI_2;
 
       // This is YAW (eq. projection of angle between current rotation and forward vector).
       float cameraAngle = glm::pitch(
