@@ -13,35 +13,42 @@ extern "C" {
 #include "lua.h"
 }
 
+#define DEFAULT_ANCHOR_COLOR {0.63671875f, 0.76953125f, 0.22265625f, 1.0f}
+
+struct CloudAnchor {
+  ArAnchor *anchor;
+  ArCloudAnchorState prevCloudAnchorState = AR_CLOUD_ANCHOR_STATE_NONE;
+};
+
 struct UiAnchor {
   ArAnchor *anchor;
-  ArAnchor *cloudAnchor;
-  ArCloudAnchorState prevCloudAnchorState;
-  GLfloat *colors;
-  glm::vec3 relative;
-  bool isRelative;
+  CloudAnchor *cloudAnchorState;
+  GLfloat *color;
+
+  bool isRelative = false;
   ArPlane *plane;
+  glm::vec3 relativePos;
 };
 
 static void *ENGINE_KEY = nullptr;
 static GLfloat stateToColor[13][4] = {
     // Errors, that can't be fixed by user, like outdated SDK
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
     // Dataset processing failed
-    {0,           0,           0.1f,        1},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-    {0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
+    {0, 0, 0.1f, 1},
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
+    DEFAULT_ANCHOR_COLOR,
     // In progress
-    {1,           0,           0,           1},
+    {1, 0, 0, 1},
     // Completed
-    {0,           1,           0,           1}
+    {0, 1, 0, 1}
 };
 
 const static float MAX_RELATIVE_ANCHOR_DISTANCE = 8; // meters
@@ -65,8 +72,6 @@ private:
   UiAnchor *getSimilarAnchors(ArPlane *plane, glm::vec3 pos);
 
 public:
-  static const int ANCHORS_LIMIT = 10;
-
   std::vector<UiAnchor *> mAnchors;
 
   lua_State *mLuaState;

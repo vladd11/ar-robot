@@ -180,31 +180,33 @@ void Engine::drawFrame() {
       Ar::Pose anchorPose(mArSession, nullptr);
 
       ArAnchor_getPose(mArSession, uiAnchor->anchor, *anchorPose);
-      pose.getMatrix(glm::value_ptr(model_mat));
+      anchorPose.getMatrix(glm::value_ptr(model_mat));
 
-      //model_mat = glm::translate(model_mat, uiAnchor->relative);
+      if (uiAnchor->isRelative) model_mat[3] += glm::vec4(uiAnchor->relativePos, 0);
+
       glm::mat4 mvp = projection_mat * view_mat * model_mat;
       glm::vec4 vec = mvp[3] / mvp[3][3];
+
       positions[i] = vec.x;
       positions[i + 1] = vec.y;
       positions[i + 2] = vec.z;
 
-      if (uiAnchor->cloudAnchor != nullptr) {
+      if (uiAnchor->cloudAnchorState->anchor != nullptr) {
         ArCloudAnchorState state;
-        ArAnchor_getCloudAnchorState(mArSession, uiAnchor->cloudAnchor, &state);
-        uiAnchor->colors = stateToColor[state + 10];
-        if (state != uiAnchor->prevCloudAnchorState) {
+        ArAnchor_getCloudAnchorState(mArSession, uiAnchor->cloudAnchorState->anchor, &state);
+        uiAnchor->color = stateToColor[state + 10];
+        if (state != uiAnchor->cloudAnchorState->prevCloudAnchorState) {
           char *id;
-          ArAnchor_acquireCloudAnchorId(mArSession, uiAnchor->cloudAnchor, &id);
+          ArAnchor_acquireCloudAnchorId(mArSession, uiAnchor->cloudAnchorState->anchor, &id);
 
           onAnchorUpdate(mLuaState, i / 3, state, id);
           ArString_release(id);
 
-          uiAnchor->prevCloudAnchorState = state;
+          uiAnchor->cloudAnchorState->prevCloudAnchorState = state;
         }
       }
 
-      mArUiRenderer->draw(mvp, uiAnchor->colors);
+      mArUiRenderer->draw(mvp, uiAnchor->color);
       i += 3;
     }
   }
@@ -301,34 +303,35 @@ void Engine::onTouch(float x, float y) {
       UiAnchor *anchor = nullptr;
 
       if (plane != nullptr) {
-        float rawPose[7];
-        ArPose_getPoseRaw(mArSession, hitPose, rawPose);
-        glm::vec3 vecPose = glm::vec3(rawPose[4], rawPose[5], rawPose[6]);
-        ArPose_destroy(hitPose);
+        Ar::Pose thisPose(mArSession, nullptr);
+        ArHitResult_getHitPose(mArSession, finalHit, *thisPose);
 
-        anchor = getSimilarAnchors(plane, vecPose);
-        if (anchor != nullptr) {
+        float rawThisPose[7];
+        thisPose.getPoseRaw(rawThisPose);
+        glm::vec3 thisPoseVec(rawThisPose[4], rawThisPose[5], rawThisPose[6]);
+
+        UiAnchor *relAnchor = getSimilarAnchors(plane, thisPoseVec);
+        if (relAnchor != nullptr) {
           Ar::Pose anchorPose(mArSession, nullptr);
-          ArAnchor_getPose(mArSession, anchor->anchor, *anchorPose);
+          ArAnchor_getPose(mArSession, relAnchor->anchor, *anchorPose);
+
+          float rawPose[7];
           anchorPose.getPoseRaw(rawPose);
           glm::vec3 anchorVecPose = glm::vec3(rawPose[4], rawPose[5], rawPose[6]);
 
-          mAnchors.push_back(new UiAnchor{
-              .anchor=anchor->anchor,
-              .cloudAnchor=anchor->cloudAnchor,
-              .prevCloudAnchorState=anchor->prevCloudAnchorState,
-              .colors=new GLfloat[4]{0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
-              .relative=vecPose - anchorVecPose,
+          anchor = new UiAnchor{
+              .anchor = relAnchor->anchor,
+              .cloudAnchorState=relAnchor->cloudAnchorState,
+              .color=new GLfloat[]DEFAULT_ANCHOR_COLOR,
               .isRelative=true,
-              .plane=nullptr
-          });
+              .plane=relAnchor->plane,
+              .relativePos=thisPoseVec - anchorVecPose
+          };
         }
       }
 
       if (anchor == nullptr) {
         anchor = new UiAnchor();
-        anchor->anchor = nullptr;
-
         if (ArHitResult_acquireNewAnchor(mArSession, finalHit, &anchor->anchor) != AR_SUCCESS) {
           LOGD("Can't acquire new anchor");
           return;
@@ -336,22 +339,23 @@ void Engine::onTouch(float x, float y) {
 
         ArTrackingState state = AR_TRACKING_STATE_STOPPED;
         ArAnchor_getTrackingState(mArSession, anchor->anchor, &state);
-        if (state != AR_TRACKING_STATE_TRACKING || mAnchors.size() >= ANCHORS_LIMIT) {
+        if (state != AR_TRACKING_STATE_TRACKING) {
           ArAnchor_release(anchor->anchor);
           return;
         }
 
-        ArTrackable* ar_trackable = nullptr;
+        ArTrackable *ar_trackable = nullptr;
         ArHitResult_acquireTrackable(mArSession, finalHit, &ar_trackable);
         ArHitResult_destroy(finalHit);
 
+        anchor->cloudAnchorState = new CloudAnchor();
         anchor->isRelative = false;
-        anchor->cloudAnchor = nullptr;
-        anchor->relative = glm::vec3(0, 0, 0);
-        anchor->colors = new GLfloat[4]{0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
+        anchor->plane = plane;
+        anchor->color = new GLfloat[4]DEFAULT_ANCHOR_COLOR;
         anchor->plane = ArAsPlane(ar_trackable);
-        mAnchors.push_back(anchor);
       }
+
+      mAnchors.push_back(anchor);
     }
   }
 }
@@ -368,7 +372,12 @@ UiAnchor *Engine::getSimilarAnchors(ArPlane *plane, glm::vec3 pos) {
     ArTrackable *trackable;
     ArTrackableList_acquireItem(mArSession, trackableList, j, &trackable);
 
-    if (ArAsPlane(trackable) == plane) {
+    ArPlane *trackPlane = ArAsPlane(trackable);
+    ArPlane *parentPlane;
+    ArPlane_acquireSubsumedBy(mArSession, trackPlane, &parentPlane);
+    if (parentPlane == nullptr) parentPlane = trackPlane;
+
+    if (parentPlane == plane) {
       for (UiAnchor *uiAnchor: mAnchors) {
         if (uiAnchor->isRelative) continue;
 

@@ -115,7 +115,7 @@ int anchorPose(lua_State *L) {
     ArPose_create(self->getArSession(), nullptr, &pose);
     ArAnchor_getPose(self->getArSession(), anchor, pose);
 
-    lua_pushPose(L, self->getArSession(), pose, self->mAnchors[index]->relative);
+    lua_pushPose(L, self->getArSession(), pose, self->mAnchors[index]->relativePos);
 
     ArPose_destroy(pose);
   } else {
@@ -156,16 +156,12 @@ int saveAnchor(lua_State *L) {
   if (index == -1) LUA_ERROR(L, "Array index is out of range")
 
   UiAnchor *uiAnchor = self->mAnchors[index];
+  uiAnchor->cloudAnchorState->prevCloudAnchorState = AR_CLOUD_ANCHOR_STATE_NONE;
 
   ArTrackingState state;
   ArCamera_getTrackingState(self->getArSession(), self->getArCamera(), &state);
 
   if (state == AR_TRACKING_STATE_TRACKING) {
-    ArAnchor *cloudAnchor;
-    if (uiAnchor->cloudAnchor != nullptr) {
-      ArAnchor_release(uiAnchor->cloudAnchor);
-    }
-
     ArPose *pose;
     ArPose_create(self->getArSession(), nullptr, &pose);
     ArCamera_getPose(self->getArSession(), self->getArCamera(), pose);
@@ -177,8 +173,7 @@ int saveAnchor(lua_State *L) {
 
     if (quality == AR_FEATURE_MAP_QUALITY_GOOD) {
       if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->getArSession(), uiAnchor->anchor, 365,
-                                                        &cloudAnchor) == AR_SUCCESS) {
-        uiAnchor->cloudAnchor = cloudAnchor;
+                                                        &uiAnchor->cloudAnchorState->anchor) == AR_SUCCESS) {
         lua_pushboolean(L, true);
       } else LUA_ERROR(L, "NO_ANCHOR")
     } else LUA_ERROR(L, "QUALITY_INSUFFICIENT")
@@ -234,17 +229,21 @@ int angleToAnchor(lua_State *L) {
       ArPose_getPoseRaw(self->getArSession(), anchorPose, anchorPoseRaw);
       ArPose_getPoseRaw(self->getArSession(), cameraPose, cameraPoseRaw);
 
-      glm::vec3 relative = self->mAnchors[index]->relative;
-      glm::vec2 anchorVector = glm::vec2(anchorPoseRaw[4] + relative.x, anchorPoseRaw[6] + relative.z);
+      glm::vec3 relative = self->mAnchors[index]->relativePos;
+      glm::vec2 anchorVector = glm::vec2(anchorPoseRaw[4] + relative.x,
+                                         anchorPoseRaw[6] + relative.z);
+      glm::vec2 cameraVector = glm::vec2(cameraPoseRaw[4], cameraPoseRaw[6]);
+      glm::vec2 directionVector = anchorVector - cameraVector;
       // This is projection of angle (between anchor coordinates and (0, 0, -1) camera forward vector)
       // to XZ plane
-      float anchorAngle = atan2f(anchorVector.y, anchorVector.x) + (float) M_PI_2;
+      float anchorAngle = glm::atan(directionVector.y, directionVector.x) + (float) M_PI_2;
+      //LOGD("%f", anchorAngle);
 
       // This is YAW (eq. projection of angle between current rotation and forward vector).
       float cameraAngle = glm::pitch(
           glm::quat(cameraPoseRaw[3], cameraPoseRaw[0], cameraPoseRaw[1], cameraPoseRaw[2]));
 
-      lua_pushnumber(L, std::fmod(anchorAngle - cameraAngle, 2 * M_PI));
+      lua_pushnumber(L, anchorAngle - cameraAngle);
 
       ArPose_destroy(anchorPose);
       ArPose_destroy(cameraPose);
@@ -295,7 +294,7 @@ int setColor(lua_State *L) {
   }
 
   auto *self = getStruct<Engine *>(L, ENGINE_KEY);
-  self->mAnchors[id]->colors = new float[4]{R, G, B, 1.0f};
+  self->mAnchors[id]->color = new float[4]{R, G, B, 1.0f};
 
   return 0;
 }
