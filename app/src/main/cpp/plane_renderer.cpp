@@ -128,7 +128,7 @@ void PlaneRenderer::updatePlane(const ArPlane &ar_plane) {
 
   Ar::Pose pose(mArSession, nullptr);
   ArPlane_getCenterPose(mArSession, &ar_plane, *pose);
-  pose.getMatrix(mArSession, glm::value_ptr(model_mat));
+  pose.getMatrix(glm::value_ptr(model_mat));
   normal_vec_ = getPlaneNormal(mArSession, **pose);
 
   // Feather distance 0.2 meters.

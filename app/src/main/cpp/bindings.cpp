@@ -56,7 +56,7 @@ lua_State *createLuaState(std::string path) {
  * Pushes 7 values of raw pose from ArPose.
  * Order: (Rotation)WXYZ(Position)XYZ
  */
-void lua_pushPose(lua_State *L, ArSession *session, ArPose *pose) {
+void lua_pushPose(lua_State *L, ArSession *session, ArPose *pose, glm::vec3 relative) {
   float raw[7];
   ArPose_getPoseRaw(session, pose, raw);
 
@@ -65,9 +65,9 @@ void lua_pushPose(lua_State *L, ArSession *session, ArPose *pose) {
   lua_pushnumber(L, raw[1]);
   lua_pushnumber(L, raw[2]);
 
-  lua_pushnumber(L, raw[4]);
-  lua_pushnumber(L, raw[5]);
-  lua_pushnumber(L, raw[6]);
+  lua_pushnumber(L, raw[4] + relative.x);
+  lua_pushnumber(L, raw[5] + relative.y);
+  lua_pushnumber(L, raw[6] + relative.z);
 }
 
 int loadCode(lua_State *L, const std::string &code, std::string **outError) {
@@ -115,7 +115,7 @@ int anchorPose(lua_State *L) {
     ArPose_create(self->getArSession(), nullptr, &pose);
     ArAnchor_getPose(self->getArSession(), anchor, pose);
 
-    lua_pushPose(L, self->getArSession(), pose);
+    lua_pushPose(L, self->getArSession(), pose, self->mAnchors[index]->relative);
 
     ArPose_destroy(pose);
   } else {
@@ -141,7 +141,7 @@ int cameraPose(lua_State *L) {
     ArPose_create(self->getArSession(), nullptr, &pose);
     ArCamera_getPose(self->getArSession(), camera, pose);
 
-    lua_pushPose(L, self->getArSession(), pose);
+    lua_pushPose(L, self->getArSession(), pose, glm::vec3(0, 0, 0));
 
     ArPose_destroy(pose);
   }
@@ -234,10 +234,10 @@ int angleToAnchor(lua_State *L) {
       ArPose_getPoseRaw(self->getArSession(), anchorPose, anchorPoseRaw);
       ArPose_getPoseRaw(self->getArSession(), cameraPose, cameraPoseRaw);
 
-      glm::vec2 anchorVector = glm::vec2(anchorPoseRaw[4], anchorPoseRaw[6]);
+      glm::vec3 relative = self->mAnchors[index]->relative;
+      glm::vec2 anchorVector = glm::vec2(anchorPoseRaw[4] + relative.x, anchorPoseRaw[6] + relative.z);
       // This is projection of angle (between anchor coordinates and (0, 0, -1) camera forward vector)
       // to XZ plane
-      // Calculated by [dot product](https://en.wikipedia.org/wiki/Dot_product)
       float anchorAngle = atan2f(anchorVector.y, anchorVector.x) + (float) M_PI_2;
 
       // This is YAW (eq. projection of angle between current rotation and forward vector).

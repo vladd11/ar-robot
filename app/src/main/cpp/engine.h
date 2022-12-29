@@ -18,6 +18,9 @@ struct UiAnchor {
   ArAnchor *cloudAnchor;
   ArCloudAnchorState prevCloudAnchorState;
   GLfloat *colors;
+  glm::vec3 relative;
+  bool isRelative;
+  ArPlane *plane;
 };
 
 static void *ENGINE_KEY = nullptr;
@@ -41,6 +44,7 @@ static GLfloat stateToColor[13][4] = {
     {0,           1,           0,           1}
 };
 
+const static float MAX_RELATIVE_ANCHOR_DISTANCE = 8; // meters
 class Engine {
 private:
   JNICallbacks *mCallbacks{};
@@ -57,6 +61,8 @@ private:
 
   bool mIsUvMapsInitialized{};
   float mTransformedUVs[kNumVertices * 2]{};
+
+  UiAnchor *getSimilarAnchors(ArPlane *plane, glm::vec3 pos);
 
 public:
   static const int ANCHORS_LIMIT = 10;
@@ -81,8 +87,6 @@ public:
 
   void pause();
 
-  void getTransformMatrixFromAnchor(const ArAnchor &arAnchor, glm::mat4 *out_model_mat);
-
   JNICallbacks *getCallbacks() const;
 
   ArSession *getArSession() const;
@@ -92,8 +96,6 @@ public:
   ArFrame *getArFrame() const;
 
   ServerThread *getServerThread() const;
-
-  GLuint mRawProgram;
 };
 
 #endif //AR_SHOP_ENGINE_H

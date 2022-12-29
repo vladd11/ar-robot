@@ -73,7 +73,6 @@ void Engine::init() {
     printLuaError(mLuaState);
   }
 
-  mRawProgram = RawShader::compile();
   mPlaneRenderer->init(mCallbacks);
   mBackgroundRenderer->init();
   mArUiRenderer->init();
@@ -167,16 +166,10 @@ void Engine::drawFrame() {
   ArTrackableList_destroy(plane_list);
   plane_list = nullptr;
 
-  glUseProgram(mRawProgram);
-  glLineWidth(100);
-
-  GLint vColorLocation = glGetUniformLocation(mRawProgram, "vColor");
-  glUniform4fv(vColorLocation, 1, Triangle::kColors);
-
-  glm::mat4 model_mat(1.0f);
-
   size_t count = mAnchors.size();
   float positions[count * 3];
+
+  glm::mat4 model_mat(1.0f);
 
   int i = 0;
   for (auto &uiAnchor: mAnchors) {
@@ -184,8 +177,12 @@ void Engine::drawFrame() {
     ArAnchor_getTrackingState(mArSession, uiAnchor->anchor,
                               &tracking_state);
     if (tracking_state == AR_TRACKING_STATE_TRACKING) {
-      getTransformMatrixFromAnchor(*uiAnchor->anchor, &model_mat);
+      Ar::Pose anchorPose(mArSession, nullptr);
 
+      ArAnchor_getPose(mArSession, uiAnchor->anchor, *anchorPose);
+      pose.getMatrix(glm::value_ptr(model_mat));
+
+      //model_mat = glm::translate(model_mat, uiAnchor->relative);
       glm::mat4 mvp = projection_mat * view_mat * model_mat;
       glm::vec4 vec = mvp[3] / mvp[3][3];
       positions[i] = vec.x;
@@ -239,6 +236,9 @@ void Engine::onTouch(float x, float y) {
     ArHitResultList_getSize(mArSession, list, &size);
 
     ArHitResult *finalHit = nullptr;
+    ArPose *hitPose = nullptr;
+    ArPlane *plane;
+
     for (int i = 0; i < size; i++) {
       ArHitResult *hit = nullptr;
       ArHitResult_create(mArSession, &hit);
@@ -246,6 +246,7 @@ void Engine::onTouch(float x, float y) {
 
       if (hit == nullptr) {
         LOGE("Can't get hit on line %i %s", __LINE__, __FILE__);
+        ArHitResultList_destroy(list);
         return;
       }
 
@@ -255,11 +256,10 @@ void Engine::onTouch(float x, float y) {
       ArTrackable_getType(mArSession, ar_trackable, &trackableType);
       // Creates an anchor if a plane or an oriented point was hit.
       if (trackableType == AR_TRACKABLE_PLANE) {
-        ArPose *hitPose = nullptr;
         ArPose_create(mArSession, nullptr, &hitPose);
         ArHitResult_getHitPose(mArSession, hit, hitPose);
         int32_t insidePolygon = 0;
-        ArPlane *plane = ArAsPlane(ar_trackable);
+        plane = ArAsPlane(ar_trackable);
         ArPlane_isPoseInPolygon(mArSession, plane, hitPose, &insidePolygon);
 
         // Use hit pose and camera pose to check if hittest is from the
@@ -273,9 +273,9 @@ void Engine::onTouch(float x, float y) {
         float distanceToPlane = calculateDistanceToPlane(
             mArSession, *hitPose, **cameraPose);
 
-        ArPose_destroy(hitPose);
-
         if (!insidePolygon || distanceToPlane < 0) {
+          ArPose_destroy(hitPose);
+          hitPose = nullptr;
           continue;
         }
 
@@ -286,45 +286,112 @@ void Engine::onTouch(float x, float y) {
         ArPointOrientationMode mode;
         ArPoint_getOrientationMode(mArSession, arPoint, &mode);
         if (AR_POINT_ORIENTATION_ESTIMATED_SURFACE_NORMAL == mode) {
+          ArPose_create(mArSession, nullptr, &hitPose);
+          ArPoint_getPose(mArSession, arPoint, hitPose);
+
           finalHit = hit;
+          plane = nullptr;
           break;
         }
       }
     }
+    ArHitResultList_destroy(list);
 
     if (finalHit) {
-      ArAnchor *anchor = nullptr;
-      if (ArHitResult_acquireNewAnchor(mArSession, finalHit, &anchor) != AR_SUCCESS) {
-        LOGD("Can't acquire new anchor");
-        return;
+      UiAnchor *anchor = nullptr;
+
+      if (plane != nullptr) {
+        float rawPose[7];
+        ArPose_getPoseRaw(mArSession, hitPose, rawPose);
+        glm::vec3 vecPose = glm::vec3(rawPose[4], rawPose[5], rawPose[6]);
+        ArPose_destroy(hitPose);
+
+        anchor = getSimilarAnchors(plane, vecPose);
+        if (anchor != nullptr) {
+          Ar::Pose anchorPose(mArSession, nullptr);
+          ArAnchor_getPose(mArSession, anchor->anchor, *anchorPose);
+          anchorPose.getPoseRaw(rawPose);
+          glm::vec3 anchorVecPose = glm::vec3(rawPose[4], rawPose[5], rawPose[6]);
+
+          mAnchors.push_back(new UiAnchor{
+              .anchor=anchor->anchor,
+              .cloudAnchor=anchor->cloudAnchor,
+              .prevCloudAnchorState=anchor->prevCloudAnchorState,
+              .colors=new GLfloat[4]{0.63671875f, 0.76953125f, 0.22265625f, 1.0f},
+              .relative=vecPose - anchorVecPose,
+              .isRelative=true,
+              .plane=nullptr
+          });
+        }
       }
 
-      ArTrackingState state = AR_TRACKING_STATE_STOPPED;
-      ArAnchor_getTrackingState(mArSession, anchor, &state);
-      if (state != AR_TRACKING_STATE_TRACKING || mAnchors.size() >= ANCHORS_LIMIT) {
-        ArAnchor_release(anchor);
-        return;
+      if (anchor == nullptr) {
+        anchor = new UiAnchor();
+        anchor->anchor = nullptr;
+
+        if (ArHitResult_acquireNewAnchor(mArSession, finalHit, &anchor->anchor) != AR_SUCCESS) {
+          LOGD("Can't acquire new anchor");
+          return;
+        }
+
+        ArTrackingState state = AR_TRACKING_STATE_STOPPED;
+        ArAnchor_getTrackingState(mArSession, anchor->anchor, &state);
+        if (state != AR_TRACKING_STATE_TRACKING || mAnchors.size() >= ANCHORS_LIMIT) {
+          ArAnchor_release(anchor->anchor);
+          return;
+        }
+
+        ArTrackable* ar_trackable = nullptr;
+        ArHitResult_acquireTrackable(mArSession, finalHit, &ar_trackable);
+        ArHitResult_destroy(finalHit);
+
+        anchor->isRelative = false;
+        anchor->cloudAnchor = nullptr;
+        anchor->relative = glm::vec3(0, 0, 0);
+        anchor->colors = new GLfloat[4]{0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
+        anchor->plane = ArAsPlane(ar_trackable);
+        mAnchors.push_back(anchor);
       }
-
-      ArTrackable *ar_trackable = nullptr;
-      ArHitResult_acquireTrackable(mArSession, finalHit, &ar_trackable);
-      ArHitResult_destroy(finalHit);
-
-      auto *uiAnchor = new UiAnchor();
-      uiAnchor->anchor = anchor;
-      uiAnchor->cloudAnchor = nullptr;
-      uiAnchor->colors = new GLfloat[4]{0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
-      mAnchors.push_back(uiAnchor);
     }
-    ArHitResultList_destroy(list);
   }
 }
 
-void Engine::getTransformMatrixFromAnchor(const ArAnchor &arAnchor, glm::mat4 *out_model_mat) {
-  Ar::Pose pose(mArSession, nullptr);
+UiAnchor *Engine::getSimilarAnchors(ArPlane *plane, glm::vec3 pos) {
+  ArTrackableList *trackableList;
+  ArTrackableList_create(mArSession, &trackableList);
+  ArSession_getAllTrackables(mArSession, AR_TRACKABLE_PLANE, trackableList);
 
-  ArAnchor_getPose(mArSession, &arAnchor, *pose);
-  pose.getMatrix(mArSession, glm::value_ptr(*out_model_mat));
+  int trackableListSize;
+  ArTrackableList_getSize(mArSession, trackableList, &trackableListSize);
+
+  for (int j = 0; j < trackableListSize; ++j) {
+    ArTrackable *trackable;
+    ArTrackableList_acquireItem(mArSession, trackableList, j, &trackable);
+
+    if (ArAsPlane(trackable) == plane) {
+      for (UiAnchor *uiAnchor: mAnchors) {
+        if (uiAnchor->isRelative) continue;
+
+        Ar::Pose pose(mArSession, nullptr);
+        ArAnchor_getPose(mArSession, uiAnchor->anchor, *pose);
+
+        float rawPose[7];
+        pose.getPoseRaw(rawPose);
+        if (glm::distance(glm::vec3(rawPose[4], rawPose[5], rawPose[6]), pos) >
+            MAX_RELATIVE_ANCHOR_DISTANCE) {
+          continue;
+        }
+
+        if (uiAnchor->plane == plane) {
+          ArTrackableList_destroy(trackableList);
+          return uiAnchor;
+        }
+      }
+    }
+  }
+
+  ArTrackableList_destroy(trackableList);
+  return nullptr;
 }
 
 void Engine::resume(JNIEnv *env, jobject context, jobject activity) {

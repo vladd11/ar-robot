@@ -5,29 +5,30 @@
 
 namespace Ar {
   class Pose {
-  public:
+  private:
+    const ArSession *mSession;
     ArPose *impl;
 
+  public:
     inline Pose(const ArSession *session,
                 const float *pose_raw) {
       ArPose_create(session, pose_raw, &impl);
+      mSession = session;
     }
 
     inline ~Pose() {
       ArPose_destroy(impl);
     }
 
-    inline void getPoseRaw(const ArSession *session,
-                           float *out_pose_raw_7) {
-      ArPose_getPoseRaw(session, impl, out_pose_raw_7);
+    inline void getPoseRaw(float *out_pose_raw_7) {
+      ArPose_getPoseRaw(mSession, impl, out_pose_raw_7);
     }
 
-    inline void getMatrix(const ArSession *session,
-                          float *out_matrix_col_major_4x4) {
-      ArPose_getMatrix(session, impl, out_matrix_col_major_4x4);
+    inline void getMatrix(float *out_matrix_col_major_4x4) {
+      ArPose_getMatrix(mSession, impl, out_matrix_col_major_4x4);
     }
 
-    ArPose *operator*() const {
+    inline ArPose *operator*() const {
       return impl;
     }
   };
