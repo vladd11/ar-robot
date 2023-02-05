@@ -1,5 +1,8 @@
 #include "loader.h"
 
+#include <vector>
+#include <string>
+
 #define TAG "ShaderLoader"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 
@@ -23,7 +26,7 @@ bool CompileShader(GLuint *shader, const GLenum type,
   if (logLength > 0) {
     auto *log = (GLchar *)malloc(logLength);
     glGetShaderInfoLog(*shader, logLength, &logLength, log);
-    LOGD("Shader compile log:\n%s", log);
+    LOGD("Shader get log:\n%s", log);
     free(log);
   }
 #endif

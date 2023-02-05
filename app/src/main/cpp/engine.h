@@ -52,6 +52,7 @@ static GLfloat stateToColor[13][4] = {
 };
 
 const static float MAX_RELATIVE_ANCHOR_DISTANCE = 8; // meters
+const static float MAX_RAY_DISTANCE = 150;
 class Engine {
 private:
   JNICallbacks *mCallbacks{};
@@ -62,6 +63,7 @@ private:
   ArUiRenderer *mArUiRenderer;
   PlaneRenderer *mPlaneRenderer;
   ArSession *mArSession{};
+  glm::mat4 mProjectionMatrix, mViewMatrix;
   int mDisplayRotation = 0, mDisplayWidth = 1, mDisplayHeight = 1;
 
   ServerThread *mServerThread;
@@ -101,6 +103,8 @@ public:
   ArFrame *getArFrame() const;
 
   ServerThread *getServerThread() const;
+
+  std::vector<float> mPositions;
 };
 
 #endif //AR_SHOP_ENGINE_H

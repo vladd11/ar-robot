@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.1)
 
-project("arshop")
+project(arshop)
 
 add_library(arcore SHARED IMPORTED)
 set_target_properties(
@@ -29,6 +29,8 @@ add_library(
         gl_util.cpp
         bindings.cpp
         jni_callbacks.cpp
+        lualines.cpp
+        luagraph.cpp
 
         safe_queue.cpp
         verts/plane.cpp

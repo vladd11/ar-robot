@@ -7,7 +7,7 @@
 namespace DefaultShader {
   static const GLuint vPositionAttrIndex = 0;
 
-  GLuint compile();
+  GLuint get();
 }
 
 #endif //AR_SHOP_DEFAULT_H

@@ -9,6 +9,7 @@ extern "C" {
 #include "luasocket.h"
 }
 
+#include "luagraph.h"
 #include <cmath>
 
 #define TAG "Lua"
@@ -29,6 +30,13 @@ static const struct luaL_Reg bindings[] = {
     {"requireSockets",  luaopen_socket_core},
     {"setText",         setText},
     {"print",           log},
+    {"createGraph",         createGraph},
+    {"deleteGraph",         deleteGraph},
+    {"buildRoute",         buildRoute},
+    {"setAdjWeight",         setAdjWeight},
+    {"connect",         connect},
+    {"getAdj",         getAdj},
+    {"getAdjCount",         getAdjCount},
 };
 
 lua_State *createLuaState(std::string path) {
@@ -173,7 +181,8 @@ int saveAnchor(lua_State *L) {
 
     if (quality == AR_FEATURE_MAP_QUALITY_GOOD) {
       if (ArSession_hostAndAcquireNewCloudAnchorWithTtl(self->getArSession(), uiAnchor->anchor, 365,
-                                                        &uiAnchor->cloudAnchorState->anchor) == AR_SUCCESS) {
+                                                        &uiAnchor->cloudAnchorState->anchor) ==
+          AR_SUCCESS) {
         lua_pushboolean(L, true);
       } else LUA_ERROR(L, "NO_ANCHOR")
     } else LUA_ERROR(L, "QUALITY_INSUFFICIENT")

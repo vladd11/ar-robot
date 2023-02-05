@@ -7,7 +7,7 @@
 namespace RawShader {
   static const GLuint vPositionAttrIndex = 0;
 
-  GLuint compile();
+  GLuint get();
 }
 
 #endif //AR_SHOP_RAW_H

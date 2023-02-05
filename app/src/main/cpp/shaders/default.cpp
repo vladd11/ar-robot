@@ -19,10 +19,13 @@ void main() {
   gl_FragColor = vColor;
 }
 )";
+  static GLuint program = 0;
 
-  GLuint compile() {
+  GLuint get() {
+    if (program == 0) program = glCreateProgram();
+    else return program;
+
     GLuint vertexShader, fragmentShader;
-    GLuint program = glCreateProgram();
     CompileShader(&vertexShader, GL_VERTEX_SHADER, vertexShaderCode);
     CompileShader(&fragmentShader, GL_FRAGMENT_SHADER, fragmentShaderCode);
 

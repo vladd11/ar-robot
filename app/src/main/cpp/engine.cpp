@@ -1,10 +1,5 @@
 #include "engine.h"
 
-extern "C" {
-#include "lua.h"
-#include "lauxlib.h"
-}
-
 #include "mongoose.h"
 
 #include <android/log.h>
@@ -18,6 +13,7 @@ extern "C" {
 #include "glm.h"
 #include "server.h"
 #include "bindings.h"
+#include "lualines.h"
 
 #define TAG "Engine"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
@@ -41,6 +37,7 @@ Engine::Engine(std::string storagePath, JNICallbacks *callbacks) {
   mCallbacks = callbacks;
   mStoragePath = std::move(storagePath);
   mLuaState = createLuaState(mStoragePath);
+  openLines(mLuaState);
   pushStruct(mLuaState, this, (void *) ENGINE_KEY);
 
   mServerThread = new class ServerThread();
@@ -63,6 +60,7 @@ Engine::~Engine() {
 }
 
 void Engine::init() {
+  initGL();
   mCallbacks->attach();
   std::thread thr{[this] {
       (*mServerThread)();
@@ -113,11 +111,9 @@ void Engine::drawFrame() {
     mIsUvMapsInitialized = true;
   }
 
-  glm::mat4 view_mat;
-  glm::mat4 projection_mat;
-  ArCamera_getViewMatrix(mArSession, mArCamera, glm::value_ptr(view_mat));
+  ArCamera_getViewMatrix(mArSession, mArCamera, glm::value_ptr(mViewMatrix));
   ArCamera_getProjectionMatrix(mArSession, mArCamera, /*near=*/0.1f, /*far=*/100.f,
-                               glm::value_ptr(projection_mat));
+                               glm::value_ptr(mProjectionMatrix));
 
   int64_t frame_timestamp;
   ArFrame_getTimestamp(mArSession, mArFrame, &frame_timestamp);
@@ -158,7 +154,7 @@ void Engine::drawFrame() {
       ArTrackable_release(ar_trackable);
       continue;
     }
-    mPlaneRenderer->draw(projection_mat, view_mat, *ar_plane);
+    mPlaneRenderer->draw(mProjectionMatrix, mViewMatrix, *ar_plane);
 
     ArTrackable_release(ar_trackable);
   }
@@ -167,7 +163,8 @@ void Engine::drawFrame() {
   plane_list = nullptr;
 
   size_t count = mAnchors.size();
-  float positions[count * 3];
+
+  mPositions.resize(count * 3);
 
   glm::mat4 model_mat(1.0f);
 
@@ -184,12 +181,12 @@ void Engine::drawFrame() {
 
       if (uiAnchor->isRelative) model_mat[3] += glm::vec4(uiAnchor->relativePos, 0);
 
-      glm::mat4 mvp = projection_mat * view_mat * model_mat;
+      glm::mat4 mvp = mProjectionMatrix * mViewMatrix * model_mat;
       glm::vec4 vec = mvp[3] / mvp[3][3];
 
-      positions[i] = vec.x;
-      positions[i + 1] = vec.y;
-      positions[i + 2] = vec.z;
+      mPositions[i] = vec.x;
+      mPositions[i + 1] = vec.y;
+      mPositions[i + 2] = vec.z;
 
       if (uiAnchor->cloudAnchorState->anchor != nullptr) {
         ArCloudAnchorState state;
@@ -210,9 +207,6 @@ void Engine::drawFrame() {
       i += 3;
     }
   }
-  if (i) {
-    mArUiRenderer->drawLine(positions, (int) count);
-  }
 
   if (mServerThread->mUpdateCode) {
     auto *str = new std::string();
@@ -227,6 +221,15 @@ void Engine::drawFrame() {
 }
 
 void Engine::onTouch(float x, float y) {
+  for (int i = 0, idx = 0; i < mPositions.size(); i += 3, ++idx) {
+    float screenX = (mPositions[i] + 1) * (float) mDisplayWidth / 2;
+    float screenY = (float) mDisplayHeight - ((mPositions[i + 1] + 1) * (float) mDisplayHeight / 2);
+    if(glm::distance(glm::vec2(screenX, screenY), glm::vec2(x, y)) < 120) {
+      touch(mLuaState, idx);
+      return;
+    }
+  }
+
   if (mArFrame != nullptr && mArSession != nullptr) {
     ArHitResultList *list;
     ArHitResultList_create(mArSession, &list);
@@ -351,7 +354,8 @@ void Engine::onTouch(float x, float y) {
         anchor->cloudAnchorState = new CloudAnchor();
         anchor->isRelative = false;
         anchor->plane = plane;
-        anchor->color = new GLfloat[4]DEFAULT_ANCHOR_COLOR;
+        anchor->color = new GLfloat[4]
+            DEFAULT_ANCHOR_COLOR;
         anchor->plane = ArAsPlane(ar_trackable);
       }
 

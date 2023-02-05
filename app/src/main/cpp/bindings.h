@@ -2,7 +2,7 @@
 #define AR_SHOP_BINDINGS_H
 
 #include "engine.h"
-
+#include "luastructs.h"
 extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
@@ -23,7 +23,10 @@ inline int onAnchorUpdate(lua_State *L, int idx, int state, char *anchorId) {
 }
 
 inline void printLuaError(lua_State *L) {
-  __android_log_print(ANDROID_LOG_ERROR, "Lua", "%s", lua_tostring(L, -1));
+  std::stringstream ss(lua_tostring(L, -1));
+  std::string str;
+  while(std::getline(ss, str, '\n'))
+    __android_log_print(ANDROID_LOG_ERROR, "Lua", "%s", str.c_str());
 }
 
 inline void tick(lua_State *L) {
@@ -31,6 +34,15 @@ inline void tick(lua_State *L) {
   if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
     printLuaError(L);
   }
+}
+
+inline int touch(lua_State *L, long long anchorIdx) {
+  lua_getglobal(L, "touch");
+  lua_pushinteger(L, anchorIdx);
+  if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
+    printLuaError(L);
+  }
+  return 1;
 }
 
 /**
@@ -66,19 +78,5 @@ int log(lua_State *L);
 int setText(lua_State *L);
 
 lua_State *createLuaState(std::string path);
-
-template<class T>
-T getStruct(lua_State *L, void *key) {
-  lua_pushlightuserdata(L, key);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  return reinterpret_cast<T>(lua_touserdata(L, -1));
-}
-
-template<class T>
-void pushStruct(lua_State *L, T struct_, void *key) {
-  lua_pushlightuserdata(L, key);
-  lua_pushlightuserdata(L, struct_);
-  lua_settable(L, LUA_REGISTRYINDEX);
-}
 
 #endif //AR_SHOP_BINDINGS_H
