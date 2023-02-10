@@ -11,7 +11,7 @@ graph = createGraph(20)
 
 prev = 0
 prevTime = 0
-curr = 0
+curr = -2
 path = {}
 
 -- Triangle matrix. Like (M(3)):
@@ -55,13 +55,13 @@ function turnToAngleTick(angle)
     elseif math.abs(angle) > 0.1 and (prev == 0 or prev == 3 or prev == 4) then
         if (os.clock() - prevTime) > 0.250 then
             if angle > 0 then
-                send("S" .. tostring(map(angle, 0.314, 0.05, 1980, 1650)))
-                setText("R " .. tostring(map(angle, 0.314, 0.05, 1980, 1650)))
+                send("S" .. tostring(map(angle, 0.314, 0.05, 2000, 1650)))
+                setText("R " .. tostring(map(angle, 0.314, 0.05, 2000, 1650)))
                 prev = 3
                 prevTime = os.clock()
             else
-                send("S" .. tostring(map(math.abs(angle), 0.314, 0.05, 1325, 1650)))
-                setText("L " .. tostring(map(math.abs(angle), 0.314, 0.05, 1325, 1650)))
+                send("S" .. tostring(map(math.abs(angle), 0.314, 0.05, 1000, 1650)))
+                setText("L " .. tostring(map(math.abs(angle), 0.314, 0.05, 1000, 1650)))
                 prev = 4
                 prevTime = os.clock()
             end
@@ -92,11 +92,35 @@ function tick()
     end
     drawLine(line)
 
+    if curr == -1 then
+        if prev == 999 and os.clock() - prevTime > 4 then
+            send("E1001")
+            setText("B")
+            prev = 998
+            prevTime = os.clock()
+        end
+        if prev == 998 and os.clock() - prevTime > 4 then
+            send("E1111")
+            setText("S")
+            prev = 998
+            prevTime = os.clock()
+        end
+        return
+    end
+
+    if curr < 0 then
+        return
+    end
+
     if curr >= #path then
         if prev ~= 999 then
             prev = 999
+            prevTime = os.clock()
             send("E1111")
+            send("C1440")
+            send("S1650")
             setText("S")
+            curr = -1
         end
         return
     end
@@ -108,10 +132,7 @@ function tick()
 
     turnToAngleTick(angle)
 
-    if distance < 0.6 then
-        if curr == 2 or curr == 6 then
-            send("C1465")
-        end
+    if distance < 0.4 then
         setColor(path[curr + 1], 0, 0, 0)
         curr = curr + 1
         prev = -1

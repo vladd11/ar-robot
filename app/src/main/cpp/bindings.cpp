@@ -30,13 +30,13 @@ static const struct luaL_Reg bindings[] = {
     {"requireSockets",  luaopen_socket_core},
     {"setText",         setText},
     {"print",           log},
-    {"createGraph",         createGraph},
-    {"deleteGraph",         deleteGraph},
-    {"buildRoute",         buildRoute},
-    {"setAdjWeight",         setAdjWeight},
+    {"createGraph",     createGraph},
+    {"deleteGraph",     deleteGraph},
+    {"buildRoute",      buildRoute},
+    {"setAdjWeight",    setAdjWeight},
     {"connect",         connect},
-    {"getAdj",         getAdj},
-    {"getAdjCount",         getAdjCount},
+    {"getAdj",          getAdj},
+    {"getAdjCount",     getAdjCount},
 };
 
 lua_State *createLuaState(std::string path) {
@@ -252,7 +252,13 @@ int angleToAnchor(lua_State *L) {
       float cameraAngle = glm::pitch(
           glm::quat(cameraPoseRaw[3], cameraPoseRaw[0], cameraPoseRaw[1], cameraPoseRaw[2]));
 
-      lua_pushnumber(L, anchorAngle - cameraAngle);
+      float angle = anchorAngle - cameraAngle;
+      if (angle > M_PI) {
+        angle -= (2 * M_PI);
+      } else if (angle < -M_PI) {
+        angle += (2 * M_PI);
+      }
+      lua_pushnumber(L, angle);
 
       ArPose_destroy(anchorPose);
       ArPose_destroy(cameraPose);

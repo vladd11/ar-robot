@@ -44,7 +44,7 @@ void ServerThread::operator()() {
     std::string *msg = out.dequeue();
     if (msg != nullptr) {
       for (mg_connection *connection: mConnections) {
-        mg_ws_send(connection, msg->c_str(), msg->length(), WEBSOCKET_OP_TEXT);
+        mg_ws_send(connection, msg->data(), msg->length(), WEBSOCKET_OP_TEXT);
       }
     }
     delete msg;

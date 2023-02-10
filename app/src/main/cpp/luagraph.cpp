@@ -133,6 +133,15 @@ int connect(lua_State *L) {
   long long to = luaL_checkinteger(L, 3);
   auto w = (float) luaL_checknumber(L, 4);
 
+  if(from >= ptr->vector->size()) {
+    luaL_error(L, "from is out of bounds");
+    return 0;
+  }
+  if(to >= ptr.vector->size()) {
+    luaL_error(L, "to is out of bounds");
+    return 0;
+  }
+
   ptr->vector->operator[](from).emplace_back(new Node(to, w));
   ptr->vector->operator[](to).emplace_back(new Node(from, w));
 
